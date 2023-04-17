@@ -2,6 +2,7 @@
 #define SMASH_COMMAND_H_
 
 #include <vector>
+#include <stack>
 
 #define COMMAND_ARGS_MAX_LENGTH (200)
 #define COMMAND_MAX_ARGS (20)
@@ -52,8 +53,9 @@ class RedirectionCommand : public Command {
 };
 
 class ChangeDirCommand : public BuiltInCommand {
-// TODO: Add your data members public:
-  ChangeDirCommand(const char* cmd_line, char** plastPwd);
+// TODO: Add your data members
+public:
+    ChangeDirCommand(const char* cmd_line, char** plastPwd);
   virtual ~ChangeDirCommand() {}
   void execute() override;
 };
@@ -173,10 +175,11 @@ class KillCommand : public BuiltInCommand {
 
 class SmallShell {
  private:
-Job foregroundJob;
+//Job foregroundJob;
   // TODO: Add your data members
   SmallShell();
  public:
+    std::stack<std::string> cdHistory;
     std::string prompt = "smash";
   Command *CreateCommand(const char* cmd_line);
   SmallShell(SmallShell const&)      = delete; // disable copy ctor

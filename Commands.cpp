@@ -5,7 +5,9 @@
 #include <sstream>
 #include <sys/wait.h>
 #include <iomanip>
+#include <climits>
 #include "Commands.h"
+#include <stack>
 
 using namespace std;
 
@@ -102,6 +104,18 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
   {
       return new ChpromptCommand(cmd_line);
   }
+  else if (firstWord.compare("showpid") == 0)
+  {
+      return new ShowPidCommand(cmd_line);
+  }
+  else if (firstWord.compare("pwd") == 0)
+  {
+      return new GetCurrDirCommand(cmd_line);
+  }
+  else if (firstWord.compare("cd") == 0)
+  {
+      return new ChangeDirCommand(cmd_line,nullptr);
+  }
 /*
   if (firstWord.compare("pwd") == 0) {
     return new GetCurrDirCommand(cmd_line);
@@ -121,6 +135,7 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
 void SmallShell::executeCommand(const char *cmd_line) {
     Command* cmd = CreateCommand(cmd_line);
     cmd->execute();
+    //add support for & !!
   // TODO: Add your implementation here
   // for example:
   // Command* cmd = CreateCommand(cmd_line);
@@ -179,3 +194,70 @@ for (int i = 0 ; i < 20; i++)
     free(args[i]);
 }
 
+ShowPidCommand::ShowPidCommand(const char *cmd_line) : BuiltInCommand(cmd_line) {
+
+}
+
+void ShowPidCommand::execute() {
+    std::cout << "smash pid is " << getpid() << "\n";
+}
+
+GetCurrDirCommand::GetCurrDirCommand(const char *cmd_line) : BuiltInCommand(cmd_line) {
+
+}
+
+void GetCurrDirCommand::execute() {
+    char cwd[PATH_MAX];
+    if (getcwd(cwd, sizeof(cwd)) != NULL) {
+        printf("%s\n", cwd);
+    } else {
+        perror("smash error: getcwd failed");
+    }
+}
+
+
+ChangeDirCommand::ChangeDirCommand(const char *cmd_line, char **plastPwd) : BuiltInCommand(cmd_line) {
+
+}
+//check for cding to folders with spaces!!!
+void ChangeDirCommand::execute() {
+
+    string newPath = args[1];
+    std::stack<string>* cdHistory = &SmallShell::getInstance().cdHistory;
+    bool pushed = false;
+    if (args[2] != 0)
+    {
+        std::cerr << "smash error: cd: too many arguments\n";
+        return;
+    }
+    if (strcmp(args[1],"-") == 0)
+    {
+        if (cdHistory->empty())
+        {
+            std::cerr << "smash error: cd: OLDPWD not set\n";
+            return;
+        }
+        newPath = cdHistory->top();
+        cdHistory->pop();
+    }
+    else
+    { //should this be here??
+        char cwd[PATH_MAX];
+        if (getcwd(cwd, sizeof(cwd)) != NULL) {
+            std::cout << cwd << "\n\n";
+            cdHistory->push(cwd);
+            pushed = true;
+        } else {
+            perror("smash error: getcwd failed");
+        }
+    }
+    if (chdir(newPath.c_str()) == 0) //Success
+    {
+
+    }
+    else {
+        perror("smash error: cd failed");
+        if (pushed)
+            cdHistory->pop();
+    }
+}
