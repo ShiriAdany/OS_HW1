@@ -81,6 +81,7 @@ void _removeBackgroundSign(char* cmd_line) {
 
 SmallShell::SmallShell() {
 // TODO: add your implementation
+//printf(prompt);
 }
 
 SmallShell::~SmallShell() {
@@ -92,10 +93,16 @@ SmallShell::~SmallShell() {
 */
 Command * SmallShell::CreateCommand(const char* cmd_line) {
 	// For example:
-/*
+
+
   string cmd_s = _trim(string(cmd_line));
   string firstWord = cmd_s.substr(0, cmd_s.find_first_of(" \n"));
-
+  //std::cout << "hi";
+  if (firstWord.compare("chprompt") == 0)
+  {
+      return new ChpromptCommand(cmd_line);
+  }
+/*
   if (firstWord.compare("pwd") == 0) {
     return new GetCurrDirCommand(cmd_line);
   }
@@ -112,9 +119,63 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
 }
 
 void SmallShell::executeCommand(const char *cmd_line) {
+    Command* cmd = CreateCommand(cmd_line);
+    cmd->execute();
   // TODO: Add your implementation here
   // for example:
   // Command* cmd = CreateCommand(cmd_line);
   // cmd->execute();
   // Please note that you must fork smash process for some commands (e.g., external commands....)
 }
+
+ChpromptCommand::ChpromptCommand(const char* cmd_line) : BuiltInCommand(cmd_line) {
+// TODO: add your implementation
+    //std::cout << args[1] << "\n";
+    if (args[1] == 0)
+    {
+        newName = "smash";
+    }
+    else
+    {
+        newName = args[1];
+    }
+    //strcat(newName,"> ");
+}
+
+void ChpromptCommand::execute() {
+    SmallShell::getInstance().prompt = newName;
+    //SmallShell::prompt = newName;
+}
+
+BuiltInCommand::BuiltInCommand(const char *cmd_line) : Command(cmd_line) {
+
+}
+
+Command::Command(const char *cmd_line) {
+
+    _parseCommandLine(cmd_line,args);
+    /*
+    string s = cmd_line;
+    char str[s.length()];
+    strcpy(str,s.c_str());
+    char * pch;
+    pch = strtok (str," ");
+    for (int i = 0 ; i < 20; i++)
+    {
+        args[i] = 0;
+    }
+    int i = 0;
+    while (pch != NULL)
+    {
+        args[i] = pch;
+        i++;
+        pch = strtok (NULL, " ");
+    }
+*/
+}
+
+Command::~Command() {
+for (int i = 0 ; i < 20; i++)
+    free(args[i]);
+}
+

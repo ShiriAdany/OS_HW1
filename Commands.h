@@ -8,6 +8,9 @@
 
 class Command {
 // TODO: Add your data members
+protected:
+char* args[20];
+
  public:
   Command(const char* cmd_line);
   virtual ~Command();
@@ -60,6 +63,15 @@ class GetCurrDirCommand : public BuiltInCommand {
   GetCurrDirCommand(const char* cmd_line);
   virtual ~GetCurrDirCommand() {}
   void execute() override;
+};
+
+class ChpromptCommand : public BuiltInCommand {
+private:
+    std::string newName;
+public:
+    ChpromptCommand(const char* cmd_line);
+    virtual ~ChpromptCommand() = default;
+    void execute() override;
 };
 
 class ShowPidCommand : public BuiltInCommand {
@@ -161,9 +173,11 @@ class KillCommand : public BuiltInCommand {
 
 class SmallShell {
  private:
+Job foregroundJob;
   // TODO: Add your data members
   SmallShell();
  public:
+    std::string prompt = "smash";
   Command *CreateCommand(const char* cmd_line);
   SmallShell(SmallShell const&)      = delete; // disable copy ctor
   void operator=(SmallShell const&)  = delete; // disable = operator
