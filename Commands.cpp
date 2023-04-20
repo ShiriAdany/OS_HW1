@@ -371,7 +371,7 @@ void JobsList::killAllJobs()
 {
     for (list<JobEntry*>::iterator itr = jobsList.begin(); itr != jobsList.end(); itr++) {
         JobEntry* job = (*itr);
-        std::cout << job->pid << ": " << job->cmd;
+        std::cout << job->pid << ": " << job->cmd << "\n";
         if (kill(job->pid, SIGKILL) == -1)
             perror("smash error: kill failed");
 
@@ -443,7 +443,7 @@ void QuitCommand::execute() {
     {
         JobsList* jobsList = &SmallShell::getInstance().jobsList;
         jobsList->removeFinishedJobs();
-        std::cout << "smash: sending SIGKILL signal to" << jobsList->jobsList.size() << " jobs:\n";
+        std::cout << "smash: sending SIGKILL signal to " << jobsList->jobsList.size() << " jobs:\n";
         jobsList->killAllJobs();
     }
     exit(0);
