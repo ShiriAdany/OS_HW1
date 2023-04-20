@@ -651,14 +651,14 @@ SetcoreCommand::SetcoreCommand(const char *cmd_line) : BuiltInCommand(cmd_line) 
 }
 
 void SetcoreCommand::execute() {
-    if(args[4])
+    if(args[3])
     {
         std::cerr << "smash error: setcore: invalid arguments\n";
         return;
     }
 
-    std::string corenum_s = args[3];
-    std::string id_s = args[2];
+    std::string corenum_s = args[2];
+    std::string id_s = args[1];
     if (std::all_of(corenum_s.begin(), corenum_s.end(), ::isdigit) && std::all_of(id_s.begin(), id_s.end(), ::isdigit))
     {
         int id = stoi(id_s);
@@ -667,6 +667,7 @@ void SetcoreCommand::execute() {
         if(corenum> num_of_processes)
         {
             std::cerr << "smash error: setcore: invalid core number\n";
+            return;
         }
         else if(num_of_processes == -1)
         {
@@ -678,13 +679,12 @@ void SetcoreCommand::execute() {
         {
             if ((*itr)->jobId == id)
             {
-                std::cout << "<<<<<" << corenum;
                 cpu_set_t my_set;        /* Define your cpu_set bit mask. */
                 CPU_ZERO(&my_set);       /* Initialize it all to 0, i.e. no CPUs selected. */
                 CPU_SET(corenum, &my_set);
                 done = true;
-                //(*itr)->pid
-                if (sched_setaffinity(0,sizeof(cpu_set_t), &my_set) == -1) {
+
+                if (sched_setaffinity((*itr)->pid,sizeof(cpu_set_t), &my_set) == -1) {
                     perror("smash error: sched_setaffinity failed");
                 }
 
