@@ -169,7 +169,6 @@ class FareCommand : public BuiltInCommand {
 };
 
 class SetcoreCommand : public BuiltInCommand {
-  /* Optional */
   // TODO: Add your data members
  public:
   SetcoreCommand(const char* cmd_line);

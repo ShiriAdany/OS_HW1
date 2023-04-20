@@ -144,6 +144,10 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
   {
       return new KillCommand(cmd_line,nullptr);
   }
+  else if (firstWord.compare("setcore") == 0)
+  {
+      return new SetcoreCommand(cmd_line);
+  }
   else
   {
       return new ExternalCommand(cmd_line);
@@ -262,7 +266,6 @@ void ChangeDirCommand::execute() {
 
     string newPath = args[1];
     std::string* previousPath = &SmallShell::getInstance().previousPath;
-    bool pushed = false;
     if (args[2] != 0)
     {
         std::cerr << "smash error: cd: too many arguments\n";
@@ -640,4 +643,61 @@ void KillCommand::execute() {
     {
         std::cerr << "smash error: kill: invalid arguments\n";
     }
+}
+
+SetcoreCommand::SetcoreCommand(const char *cmd_line) : BuiltInCommand(cmd_line) {
+
+}
+
+void SetcoreCommand::execute() {
+    if(args[4])
+    {
+        std::cerr << "smash error: setcore: invalid arguments\n";
+        return;
+    }
+
+    std::string corenum_s = args[3];
+    std::string id_s = args[2];
+    if (std::all_of(corenum_s.begin(), corenum_s.end(), ::isdigit) && std::all_of(id_s.begin(), id_s.end(), ::isdigit))
+    {
+        int id = stoi(id_s);
+        int corenum = stoi(corenum_s);
+        int num_of_processes = sysconf(_SC_NPROCESSORS_ONLN);
+        if(corenum> num_of_processes)
+        {
+            std::cerr << "smash error: setcore: invalid core number\n";
+        }
+        else if(num_of_processes == -1)
+        {
+            perror("smash error: sysconf failed");
+        }
+        bool done = false;
+        JobsList* jobsList = &SmallShell::getInstance().jobsList;
+        for (list<JobsList::JobEntry*>::iterator itr = jobsList->jobsList.begin(); itr != jobsList->jobsList.end(); itr++)
+        {
+            if ((*itr)->jobId == id)
+            {
+                std::cout << "<<<<<" << corenum;
+                cpu_set_t my_set;        /* Define your cpu_set bit mask. */
+                CPU_ZERO(&my_set);       /* Initialize it all to 0, i.e. no CPUs selected. */
+                CPU_SET(corenum, &my_set);
+                done = true;
+                //(*itr)->pid
+                if (sched_setaffinity(0,sizeof(cpu_set_t), &my_set) == -1) {
+                    perror("smash error: sched_setaffinity failed");
+                }
+
+            }
+        }
+        if (!done)
+        {
+            std::cerr << "smash error: setcore: job-id "  << id << " does not exist\n";
+            return;
+        }
+    }
+    else{
+        std::cerr << "smash error: setcore: invalid arguments\n";
+        return;
+    }
+
 }
