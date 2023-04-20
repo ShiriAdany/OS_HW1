@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <stack>
+#include <list>
 
 #define COMMAND_ARGS_MAX_LENGTH (200)
 #define COMMAND_MAX_ARGS (20)
@@ -11,9 +12,12 @@ class Command {
 // TODO: Add your data members
 protected:
 char* args[20];
-
  public:
-  Command(const char* cmd_line);
+    const char* cmd_line;
+    std::string original_cmd_line;
+    int pid;
+    bool isBackground;
+  Command(const char* cmd_line, int pid);
   virtual ~Command();
   virtual void execute() = 0;
   //virtual void prepare();
@@ -92,17 +96,26 @@ public:
   void execute() override;
 };
 
-
+enum JobStatus {FOREGROUND , BACKGROUND, STOPPED} ;
 class JobsList {
  public:
   class JobEntry {
+  public:
    // TODO: Add your data members
+   time_t startTime;
+   int jobId;
+   int pid;
+   JobStatus status;
+   std::string cmd;
+   JobEntry(int jobId, int pid, JobStatus status, std::string command);
   };
  // TODO: Add your data members
+ std::list<JobEntry*> jobsList;
+ int topJobId;
  public:
   JobsList();
-  ~JobsList();
-  void addJob(Command* cmd, bool isStopped = false);
+  ~JobsList() = default;
+  void addJob(Command* cmd, bool isBackground = false);
   void printJobsList();
   void killAllJobs();
   void removeFinishedJobs();
@@ -179,7 +192,10 @@ class SmallShell {
   // TODO: Add your data members
   SmallShell();
  public:
-    std::stack<std::string> cdHistory;
+    JobsList jobsList;
+    //std::stack<std::string> cdHistory;
+    std::string previousPath;
+    std::string currentPath;
     std::string prompt = "smash";
   Command *CreateCommand(const char* cmd_line);
   SmallShell(SmallShell const&)      = delete; // disable copy ctor
