@@ -10,6 +10,7 @@
 #include <stack>
 #include <time.h>
 #include <algorithm>
+#include <fcntl.h>
 
 using namespace std;
 
@@ -107,7 +108,22 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
 
   string cmd_s = _trim(string(cmd_line));
   string firstWord = cmd_s.substr(0, cmd_s.find_first_of(" \n"));
-  //std::cout << "hi";
+
+  for (int i = 0; i < cmd_s.length(); i++)
+  {
+      if (cmd_s[i] == '>')
+      {
+          //>
+          //>>
+          return new RedirectionCommand(cmd_line);
+      }
+      if (cmd_s[i] == '|')
+      {
+          // |
+          // |&
+          return new PipeCommand(cmd_line);
+      }
+  }
   if (firstWord.compare("chprompt") == 0)
   {
       return new ChpromptCommand(cmd_line);
@@ -664,7 +680,7 @@ void SetcoreCommand::execute() {
         int id = stoi(id_s);
         int corenum = stoi(corenum_s);
         int num_of_processes = sysconf(_SC_NPROCESSORS_ONLN);
-        if(corenum> num_of_processes)
+        if(corenum >= num_of_processes)
         {
             std::cerr << "smash error: setcore: invalid core number\n";
             return;
@@ -687,7 +703,6 @@ void SetcoreCommand::execute() {
                 if (sched_setaffinity((*itr)->pid,sizeof(cpu_set_t), &my_set) == -1) {
                     perror("smash error: sched_setaffinity failed");
                 }
-
             }
         }
         if (!done)
@@ -701,4 +716,117 @@ void SetcoreCommand::execute() {
         return;
     }
 
+}
+
+RedirectionCommand::RedirectionCommand(const char *cmd_line) : Command(cmd_line,0) {
+
+}
+
+void RedirectionCommand::execute() {
+    //pwd > .txt
+    //note that 0 is a pid ???
+    std::string s = cmd_line;
+    std::string start = _trim(s.substr(0,s.find('>')));
+    std::string end;
+    int stdout_fd = dup(1);
+
+    if (s[s.find('>')] == s[s.find('>') + 1]) //>>
+    {
+        int from = s.find('>') + 2;
+        int length = s.length() - from;
+        end = _trim(s.substr(from,length));
+        close(1);
+        open(end.c_str(), O_WRONLY | O_CREAT | O_APPEND, "ra");
+    }
+    else //>
+    {
+        int from = s.find('>') + 1;
+        int length = s.length() - from;
+        end = _trim(s.substr(from,length));
+        close(1);
+        open(end.c_str(), O_WRONLY | O_CREAT, "rw");
+    }
+    SmallShell::getInstance().executeCommand(start.c_str());
+    dup2(stdout_fd, 1);
+    close(stdout_fd);
+}
+
+PipeCommand::PipeCommand(const char *cmd_line) : Command(cmd_line,0) {
+
+}
+
+void PipeCommand::execute() {
+    std::string s = cmd_line;
+    std::string start = _trim(s.substr(0,s.find('|')));
+    std::string end;
+
+    int fd[2];
+    //[ read | write ]
+    if (pipe(fd) == -1)
+    {
+        //handle error somehow
+        //TODO
+        std::cout << "PIPE FAILEDDD";
+    }
+
+    if (s[s.find('|') + 1] == '&') // |&
+    {
+        std::cout << "start string is: " <<start << "\n";
+        int from = s.find('|') + 2;
+        int length = s.length() - from;
+        end = _trim(s.substr(from,length));
+
+        if (fork() == 0) {
+            // first child
+            dup2(fd[1],2); //its err -> written to second child
+            close(fd[0]);
+            close(fd[1]);
+            SmallShell::getInstance().executeCommand(start.c_str());
+            exit(0);
+        }
+        //todo else if (==-1)
+
+        if (fork() == 0) {
+            // second child
+            dup2(fd[0],0); //its in -> received from first child
+            close(fd[0]);
+            close(fd[1]);
+            SmallShell::getInstance().executeCommand(end.c_str());
+            exit(0);
+        }
+        //todo else if (==-1)
+
+    }
+    else // |
+    {
+        int from = s.find('|') + 1;
+        int length = s.length() - from;
+        end = _trim(s.substr(from,length));
+
+        if (fork() == 0) {
+            // first child
+            // ls | more
+            dup2(fd[1],1); //its out -> written to second child
+            close(fd[0]);
+            close(fd[1]);
+            SmallShell::getInstance().executeCommand(start.c_str());
+            exit(0);
+        }
+        //todo else if (==-1)
+
+        if (fork() == 0) {
+            // second child
+            dup2(fd[0],0); //its in -> recieved from first child
+            close(fd[0]);
+            close(fd[1]);
+            SmallShell::getInstance().executeCommand(end.c_str());
+            exit(0);
+        }
+        //todo else if (==-1)
+
+    }
+    close(fd[0]);
+    close(fd[1]);
+    wait(nullptr);
+    wait(nullptr);
 }
