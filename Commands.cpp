@@ -760,13 +760,12 @@ void PipeCommand::execute() {
     std::string start = _trim(s.substr(0,s.find('|')));
     std::string end;
 
+    int p;
     int fd[2];
     //[ read | write ]
     if (pipe(fd) == -1)
     {
-        //handle error somehow
-        //TODO
-        std::cout << "PIPE FAILEDDD";
+        perror("smash error: pipe failed");
     }
 
     if (s[s.find('|') + 1] == '&') // |&
@@ -776,25 +775,33 @@ void PipeCommand::execute() {
         int length = s.length() - from;
         end = _trim(s.substr(from,length));
 
-        if (fork() == 0) {
+        p=fork();
+        if (p == 0) {
             // first child
+            setpgrp();
             dup2(fd[1],2); //its err -> written to second child
             close(fd[0]);
             close(fd[1]);
             SmallShell::getInstance().executeCommand(start.c_str());
             exit(0);
         }
-        //todo else if (==-1)
+        else if(p == -1) {
+            perror("smash error: fork failed");
+        }
 
-        if (fork() == 0) {
+        p = fork();
+        if (p == 0) {
             // second child
+            setpgrp();
             dup2(fd[0],0); //its in -> received from first child
             close(fd[0]);
             close(fd[1]);
             SmallShell::getInstance().executeCommand(end.c_str());
             exit(0);
         }
-        //todo else if (==-1)
+        else if(p == -1) {
+            perror("smash error: fork failed");
+        }
 
     }
     else // |
@@ -802,27 +809,34 @@ void PipeCommand::execute() {
         int from = s.find('|') + 1;
         int length = s.length() - from;
         end = _trim(s.substr(from,length));
-
-        if (fork() == 0) {
+        p = fork();
+        if ( p== 0) {
             // first child
             // ls | more
+            setpgrp();
             dup2(fd[1],1); //its out -> written to second child
             close(fd[0]);
             close(fd[1]);
             SmallShell::getInstance().executeCommand(start.c_str());
             exit(0);
         }
-        //todo else if (==-1)
+        else if(p == -1) {
+            perror("smash error: fork failed");
+        }
 
-        if (fork() == 0) {
+        p = fork();
+        if (p == 0) {
             // second child
+            setpgrp();
             dup2(fd[0],0); //its in -> recieved from first child
             close(fd[0]);
             close(fd[1]);
             SmallShell::getInstance().executeCommand(end.c_str());
             exit(0);
         }
-        //todo else if (==-1)
+        else if(p == -1) {
+            perror("smash error: fork failed");
+        }
 
     }
     close(fd[0]);
