@@ -17,6 +17,7 @@ char* args[20];
     std::string original_cmd_line;
     int pid;
     bool isBackground;
+    bool isExternal;
   Command(const char* cmd_line, int pid);
   virtual ~Command();
   virtual void execute() = 0;
@@ -159,13 +160,23 @@ class TimeoutCommand : public BuiltInCommand {
   void execute() override;
 };
 
-class FareCommand : public BuiltInCommand {
+class GetFileTypeCommand : public BuiltInCommand {
   /* Optional */
   // TODO: Add your data members
  public:
-  FareCommand(const char* cmd_line);
-  virtual ~FareCommand() {}
+  GetFileTypeCommand(const char* cmd_line);
+  virtual ~GetFileTypeCommand() {}
   void execute() override;
+  int getSize(std::string file);
+};
+
+class ChmodCommand : public BuiltInCommand {
+    /* Optional */
+    // TODO: Add your data members
+public:
+    ChmodCommand(const char* cmd_line);
+    virtual ~ChmodCommand() {}
+    void execute() override;
 };
 
 class SetcoreCommand : public BuiltInCommand {
@@ -196,6 +207,7 @@ class SmallShell {
     std::string previousPath;
     std::string currentPath;
     std::string prompt = "smash";
+    int pid;
   Command *CreateCommand(const char* cmd_line);
   SmallShell(SmallShell const&)      = delete; // disable copy ctor
   void operator=(SmallShell const&)  = delete; // disable = operator

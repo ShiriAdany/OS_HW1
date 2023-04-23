@@ -11,6 +11,12 @@
 #include <time.h>
 #include <algorithm>
 #include <fcntl.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <dirent.h>
+
 
 using namespace std;
 
@@ -91,6 +97,7 @@ SmallShell::SmallShell() : previousPath("")  {
     }else {
         perror("smash error: getcwd failed");
     }
+    pid = getpid();
 // TODO: add your implementation
 //printf(prompt);
 }
@@ -164,6 +171,10 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
   {
       return new SetcoreCommand(cmd_line);
   }
+  else if (firstWord.compare("getfiletype") == 0)
+  {
+      return new GetFileTypeCommand(cmd_line);
+  }
   else
   {
       return new ExternalCommand(cmd_line);
@@ -218,7 +229,7 @@ BuiltInCommand::BuiltInCommand(const char *cmd_line) : Command(cmd_line, getpid(
 
 }
 
-Command::Command(const char *cmd_line, int pid) : cmd_line(cmd_line), original_cmd_line(cmd_line), pid(pid) {
+Command::Command(const char *cmd_line, int pid) : cmd_line(cmd_line), original_cmd_line(cmd_line), pid(pid), isExternal(false) {
     char* s = const_cast<char *>(cmd_line);
     isBackground = false;
     if (_isBackgroundComamnd(s))
@@ -257,7 +268,7 @@ ShowPidCommand::ShowPidCommand(const char *cmd_line) : BuiltInCommand(cmd_line) 
 }
 
 void ShowPidCommand::execute() {
-    std::cout << "smash pid is " << getpid() << "\n";
+    std::cout << "smash pid is " << SmallShell::getInstance().pid << "\n";
 }
 
 GetCurrDirCommand::GetCurrDirCommand(const char *cmd_line) : BuiltInCommand(cmd_line) {
@@ -406,7 +417,7 @@ void JobsCommand::execute() {
 }
 
 ExternalCommand::ExternalCommand(const char *cmd_line) : Command(cmd_line,0) {
-
+    isExternal = true;
 }
 
 void ExternalCommand::execute() {
@@ -767,10 +778,14 @@ void PipeCommand::execute() {
     {
         perror("smash error: pipe failed");
     }
+    SmallShell& smash = SmallShell::getInstance();
+    bool isFirstExternal = smash.CreateCommand(start.c_str())->isExternal;
+    bool isSecondExternal = smash.CreateCommand(end.c_str())->isExternal;
 
+    // in | - should we close stderr? no right?
+    // in |& - should we close stdout? no?
     if (s[s.find('|') + 1] == '&') // |&
     {
-        std::cout << "start string is: " <<start << "\n";
         int from = s.find('|') + 2;
         int length = s.length() - from;
         end = _trim(s.substr(from,length));
@@ -809,18 +824,18 @@ void PipeCommand::execute() {
         int from = s.find('|') + 1;
         int length = s.length() - from;
         end = _trim(s.substr(from,length));
+
         p = fork();
-        if ( p== 0) {
+        if (p == 0) {
             // first child
             // ls | more
             setpgrp();
-            dup2(fd[1],1); //its out -> written to second child
+            dup2(fd[1], 1); //its out -> written to second child
             close(fd[0]);
             close(fd[1]);
             SmallShell::getInstance().executeCommand(start.c_str());
             exit(0);
-        }
-        else if(p == -1) {
+        } else if (p == -1) {
             perror("smash error: fork failed");
         }
 
@@ -828,13 +843,12 @@ void PipeCommand::execute() {
         if (p == 0) {
             // second child
             setpgrp();
-            dup2(fd[0],0); //its in -> recieved from first child
+            dup2(fd[0], 0); //its in -> recieved from first child
             close(fd[0]);
             close(fd[1]);
             SmallShell::getInstance().executeCommand(end.c_str());
             exit(0);
-        }
-        else if(p == -1) {
+        } else if (p == -1) {
             perror("smash error: fork failed");
         }
 
@@ -843,4 +857,59 @@ void PipeCommand::execute() {
     close(fd[1]);
     wait(nullptr);
     wait(nullptr);
+}
+
+GetFileTypeCommand::GetFileTypeCommand(const char *cmd_line) : BuiltInCommand(cmd_line) {
+
+}
+
+void GetFileTypeCommand::execute() {
+    struct stat statbuff;
+    if (args[2])
+    {
+        std::cerr << "smash error: gettype: invalid arguments\n";
+        return;
+    }
+    if (stat(args[1], &statbuff) != 0) ///syscall ? what is it? what if no such file? << need to print with perror i think
+        return;
+    std::cout << args[1] << "'s type is “";
+    switch (statbuff.st_mode & S_IFMT) {
+        case S_IFBLK:  std::cout <<"block device" ;           break;
+        case S_IFCHR:  std::cout <<"character device" ;       break;
+        case S_IFDIR:  std::cout <<"directory";               break;
+        case S_IFIFO:  std::cout <<"FIFO";                    break;
+        case S_IFLNK:  std::cout <<"symbolic link";           break;
+        case S_IFREG:  std::cout <<"regular file";            break;
+        case S_IFSOCK: std::cout <<"socket";                  break;
+    }
+    std::cout << "“ and takes up " << getSize(args[1])  << " bytes\n";
+}
+
+int GetFileTypeCommand::getSize(std::string file) {
+    struct stat statbuff;
+    //std::cout <<  "\n" << file << "  " << file.find('/')<< "\n";
+    stat(file.c_str(), &statbuff);
+    if (!S_ISDIR(statbuff.st_mode))
+        return statbuff.st_size;
+    int size = 0; //should we init this to 512 ? nah no way right?
+    DIR *dr;
+    struct dirent *en;
+    dr = opendir(file.c_str()); //open all directory
+    if (dr) {
+        while ((en = readdir(dr)) != NULL) {
+            if (strcmp(en->d_name, ".") == 0   || strcmp(en->d_name,"..") == 0) continue;
+            //    std::cout << file + "/" + en->d_name << " frigging d name is " << en->d_name << "\n";
+            size += getSize(file + "/" + en->d_name);
+        }
+        closedir(dr); //close all directory
+    }
+    return size;
+}
+
+ChmodCommand::ChmodCommand(const char *cmd_line) : BuiltInCommand(cmd_line) {
+
+}
+
+void ChmodCommand::execute() {
+
 }
