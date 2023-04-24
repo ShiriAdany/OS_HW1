@@ -18,6 +18,7 @@
 #include <dirent.h>
 
 
+
 using namespace std;
 
 const std::string WHITESPACE = " \n\r\t\f\v";
@@ -110,9 +111,6 @@ SmallShell::~SmallShell() {
 * Creates and returns a pointer to Command class which matches the given command line (cmd_line)
 */
 Command * SmallShell::CreateCommand(const char* cmd_line) {
-	// For example:
-
-
   string cmd_s = _trim(string(cmd_line));
   string firstWord = cmd_s.substr(0, cmd_s.find_first_of(" \n"));
 
@@ -175,24 +173,14 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
   {
       return new GetFileTypeCommand(cmd_line);
   }
+  else if (firstWord.compare("chmod") == 0)
+  {
+      return new ChmodCommand(cmd_line);
+  }
   else
   {
       return new ExternalCommand(cmd_line);
   }
-/*
-  if (firstWord.compare("pwd") == 0) {
-    return new GetCurrDirCommand(cmd_line);
-  }
-  else if (firstWord.compare("showpid") == 0) {
-    return new ShowPidCommand(cmd_line);
-  }
-  else if ...
-  .....
-  else {
-    return new ExternalCommand(cmd_line);
-  }
-  */
-  return nullptr;
 }
 
 void SmallShell::executeCommand(const char *cmd_line) {
@@ -200,9 +188,6 @@ void SmallShell::executeCommand(const char *cmd_line) {
     cmd->execute();
     //add support for & !!
   // TODO: Add your implementation here
-  // for example:
-  // Command* cmd = CreateCommand(cmd_line);
-  // cmd->execute();
   // Please note that you must fork smash process for some commands (e.g., external commands....)
 }
 
@@ -911,5 +896,22 @@ ChmodCommand::ChmodCommand(const char *cmd_line) : BuiltInCommand(cmd_line) {
 }
 
 void ChmodCommand::execute() {
+    if (args[3]) {
+        std::cerr << "smash error: chmod: invalid arguments\n";
+        return;
+    }
 
+    std::string path = args[2];
+    std::string new_mode_s = args[1];
+    if (std::all_of(new_mode_s.begin(), new_mode_s.end(), ::isdigit)) {
+        mode_t new_mode = stoi(new_mode_s,0,8);
+        if(chmod(path.c_str(), new_mode) != 0)
+        {
+            perror("smash error: chmod failed");
+        }
+    }
+    else{
+        std::cerr << "smash error: chmod: invalid arguments\n";
+        return;
+    }
 }
