@@ -177,14 +177,20 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
   {
       return new ChmodCommand(cmd_line);
   }
+  else if (firstWord.compare("timeout") == 0)
+  {
+      return new TimeoutCommand(cmd_line);
+  }
   else
   {
       return new ExternalCommand(cmd_line);
   }
 }
 
-void SmallShell::executeCommand(const char *cmd_line) {
+void SmallShell::executeCommand(const char *cmd_line, bool isTimed, int duration) {
     Command* cmd = CreateCommand(cmd_line);
+    cmd->isTimed = isTimed;
+    cmd->duration = duration;
     cmd->execute();
     //add support for & !!
   // TODO: Add your implementation here
@@ -217,6 +223,7 @@ BuiltInCommand::BuiltInCommand(const char *cmd_line) : Command(cmd_line, getpid(
 Command::Command(const char *cmd_line, int pid) : cmd_line(cmd_line), original_cmd_line(cmd_line), pid(pid), isExternal(false) {
     char* s = const_cast<char *>(cmd_line);
     isBackground = false;
+    //isTimed = false;
     if (_isBackgroundComamnd(s))
     {
         _removeBackgroundSign(s);
@@ -276,6 +283,8 @@ ChangeDirCommand::ChangeDirCommand(const char *cmd_line, char **plastPwd) : Buil
 //check for cding to folders with spaces!!!
 void ChangeDirCommand::execute() {
 
+    if (!args[1])
+        return;
     string newPath = args[1];
     std::string* previousPath = &SmallShell::getInstance().previousPath;
     if (args[2] != 0)
@@ -393,6 +402,12 @@ void JobsList::killAllJobs()
     }
 }
 
+JobsList::JobEntry *JobsList::getLastJob() {
+    list<JobsList::JobEntry*>::iterator itr = jobsList.end();
+    itr--;
+    return *itr;
+}
+
 JobsCommand::JobsCommand(const char *cmd_line, JobsList *jobs) : BuiltInCommand(cmd_line) {
 
 }
@@ -436,6 +451,9 @@ void ExternalCommand::execute() {
     } else {
 
         this->pid = p; //important?
+
+
+
         if (isBackground)
         {
             SmallShell::getInstance().jobsList.addJob(this,true);
@@ -443,8 +461,20 @@ void ExternalCommand::execute() {
         else
         {
             SmallShell::getInstance().jobsList.addJob(this, false);
-            waitpid(p, NULL, 0); //need to check no &
         }
+        if (isTimed)
+        {
+            TimedProcess* timedProcess = new TimedProcess();
+            timedProcess->cmd_line = SmallShell::getInstance().jobsList.getLastJob()->cmd;
+            timedProcess->startTime = SmallShell::getInstance().jobsList.getLastJob()->startTime;
+            timedProcess->duration = duration;
+            timedProcess->pid = SmallShell::getInstance().jobsList.getLastJob()->pid;
+            SmallShell::getInstance().timedProcesses.push_back(timedProcess);
+
+            //std::cout << cmd_line << "\n\n\n";
+        }
+        if (!isBackground)
+            waitpid(p, NULL, WUNTRACED); //need to check no &
     }
 }
 
@@ -479,7 +509,7 @@ void ForegroundCommand::execute() {
     if (args[1])
     {
         std::string s = args[1];
-        if (std::all_of(s.begin(), s.end(), ::isdigit))
+        if (std::all_of(s.begin(), s.end(), ::isdigit) || (s[0] == '-' && std::all_of(s.begin()+1, s.end(), ::isdigit)))
         {
             int id = stoi(s);
             bool done = false;
@@ -493,7 +523,7 @@ void ForegroundCommand::execute() {
                     std::cout << (*itr)->cmd << " : " << (*itr)->pid<< "\n";
                     if (kill((*itr)->pid,SIGCONT) == -1)
                         perror("smash error: kill failed");
-                    waitpid((*itr)->pid,nullptr,0);
+                    waitpid((*itr)->pid,nullptr,WUNTRACED);
                 }
             }
             if (!done)
@@ -522,7 +552,7 @@ void ForegroundCommand::execute() {
         std::cout << (*itr)->cmd << " : " << (*itr)->pid << "\n";
         if (kill((*itr)->pid,SIGCONT) == -1)
             perror("smash error: kill failed");
-        waitpid((*itr)->pid,nullptr,0);
+        waitpid((*itr)->pid,nullptr,WUNTRACED);
     }
 }
 
@@ -637,6 +667,8 @@ void KillCommand::execute() {
                     std::cout << "signal number " << signum << " was sent to pid " << (*itr)->pid << "\n";
                     if (kill((*itr)->pid,signum) == -1)
                         perror("smash error: kill failed");
+                    if (signum == 20)
+                        (*itr)->status = STOPPED;
                 }
             }
             if (!done)
@@ -647,7 +679,7 @@ void KillCommand::execute() {
         }
         else
         {
-            std::cerr << "smash error: bg: invalid arguments\n";
+            std::cerr << "smash error: kill: invalid arguments\n";
             return;
         }
     }
@@ -914,4 +946,46 @@ void ChmodCommand::execute() {
         std::cerr << "smash error: chmod: invalid arguments\n";
         return;
     }
+}
+
+
+TimeoutCommand::TimeoutCommand(const char *cmd_line) : BuiltInCommand(cmd_line) {
+
+}
+
+void TimeoutCommand::execute() {
+    int i = 2;
+    string cmd = "";
+    if (!args[1] || !args[2])
+    {
+        std::cerr << "smash error: timeout: invalid arguments\n";
+        return;
+    }
+    while (args[i])
+    {
+        cmd += args[i];
+        cmd += " ";
+        i++;
+    }
+    if (isBackground)
+        cmd += "&";
+
+    if (!args[1] || !args[2])
+    {
+        std::cerr << "smash error: timeout: invalid arguments\n";
+        return;
+    }
+    string s= args[1];
+    if (!std::all_of(s.begin(), s.end(), ::isdigit)) {
+        std::cerr << "smash error: timeout: invalid arguments\n";
+        return;
+    }
+    int duration = stoi(args[1]); //todo check valid, check not 0
+
+    alarm(duration);
+
+    //isTimed = true;
+    SmallShell::getInstance().executeCommand(cmd.c_str(), true, duration);
+    //delete timedProcess;
+    //todo delete on the other new too
 }

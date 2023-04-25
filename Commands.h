@@ -18,6 +18,8 @@ char* args[20];
     int pid;
     bool isBackground;
     bool isExternal;
+    bool isTimed;
+    int duration;
   Command(const char* cmd_line, int pid);
   virtual ~Command();
   virtual void execute() = 0;
@@ -122,7 +124,7 @@ class JobsList {
   void removeFinishedJobs();
   JobEntry * getJobById(int jobId);
   void removeJobById(int jobId);
-  JobEntry * getLastJob(int* lastJobId);
+  JobEntry * getLastJob();
   JobEntry *getLastStoppedJob(int *jobId);
   // TODO: Add extra methods or modify exisitng ones as needed
 };
@@ -151,14 +153,6 @@ class BackgroundCommand : public BuiltInCommand {
   void execute() override;
 };
 
-class TimeoutCommand : public BuiltInCommand {
-/* Optional */
-// TODO: Add your data members
- public:
-  explicit TimeoutCommand(const char* cmd_line);
-  virtual ~TimeoutCommand() {}
-  void execute() override;
-};
 
 class GetFileTypeCommand : public BuiltInCommand {
   /* Optional */
@@ -196,6 +190,25 @@ class KillCommand : public BuiltInCommand {
   void execute() override;
 };
 
+
+class TimedProcess
+{
+public:
+    int pid;
+    int duration;
+    time_t startTime;
+    std::string cmd_line;
+};
+
+class TimeoutCommand : public BuiltInCommand {
+/* Optional */
+// TODO: Add your data members
+public:
+    explicit TimeoutCommand(const char* cmd_line);
+    virtual ~TimeoutCommand() {}
+    void execute() override;
+};
+
 class SmallShell {
  private:
 //Job foregroundJob;
@@ -208,6 +221,10 @@ class SmallShell {
     std::string currentPath;
     std::string prompt = "smash";
     int pid;
+
+    std::list<TimedProcess*> timedProcesses;
+
+
   Command *CreateCommand(const char* cmd_line);
   SmallShell(SmallShell const&)      = delete; // disable copy ctor
   void operator=(SmallShell const&)  = delete; // disable = operator
@@ -218,7 +235,7 @@ class SmallShell {
     return instance;
   }
   ~SmallShell();
-  void executeCommand(const char* cmd_line);
+  void executeCommand(const char* cmd_line, bool isTimed = false, int duration = 0);
   // TODO: add extra methods as needed
 };
 
