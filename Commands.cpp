@@ -371,7 +371,6 @@ void JobsList::removeFinishedJobs() {
         topJobId = 1;
     else
     {
-        int num = 0;
         list<JobEntry*>::iterator itr = jobsList.end();
         itr--;
         topJobId = (*itr)->jobId+1;
@@ -520,6 +519,7 @@ void ForegroundCommand::execute() {
                 {
                     done = true;
                     (*itr)->status = FOREGROUND;
+                    (*itr)->startTime = time(nullptr); //TODO make sure it is supposed to be started over
                     std::cout << (*itr)->cmd << " : " << (*itr)->pid<< "\n";
                     if (kill((*itr)->pid,SIGCONT) == -1)
                         perror("smash error: kill failed");
@@ -588,6 +588,7 @@ void BackgroundCommand::execute() {
                     }
                     done = true;
                     (*itr)->status = BACKGROUND; //was STOPPED
+                    (*itr)->startTime = time(nullptr); //TODO make sure it is supposed to be started over
                     std::cout << (*itr)->cmd << " : " << (*itr)->pid<< "\n";
                     if (kill((*itr)->pid,SIGCONT) == -1)
                         perror("smash error: kill failed");
@@ -795,9 +796,9 @@ void PipeCommand::execute() {
     {
         perror("smash error: pipe failed");
     }
-    SmallShell& smash = SmallShell::getInstance();
-    bool isFirstExternal = smash.CreateCommand(start.c_str())->isExternal;
-    bool isSecondExternal = smash.CreateCommand(end.c_str())->isExternal;
+    //SmallShell& smash = SmallShell::getInstance();
+    //bool isFirstExternal = smash.CreateCommand(start.c_str())->isExternal;
+    //bool isSecondExternal = smash.CreateCommand(end.c_str())->isExternal;
 
     // in | - should we close stderr? no right?
     // in |& - should we close stdout? no?
@@ -937,7 +938,7 @@ void ChmodCommand::execute() {
     std::string new_mode_s = args[1];
     if (std::all_of(new_mode_s.begin(), new_mode_s.end(), ::isdigit)) {
         mode_t new_mode = stoi(new_mode_s,0,8);
-        if(chmod(path.c_str(), new_mode) != 0)
+        if(chmod(path.c_str(), new_mode) == -1)
         {
             perror("smash error: chmod failed");
         }

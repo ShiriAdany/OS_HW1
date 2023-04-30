@@ -7,7 +7,7 @@
 using namespace std;
 
 void ctrlZHandler(int sig_num) {
-	// TODO: Add your implementation
+    // TODO: Add your implementation
     JobsList* jobsList = &SmallShell::getInstance().jobsList;
     for (list<JobsList::JobEntry*>::iterator itr = jobsList->jobsList.begin(); itr != jobsList->jobsList.end(); itr++)
     {
@@ -15,6 +15,7 @@ void ctrlZHandler(int sig_num) {
         {
             std::cout << "smash: got ctrl-Z\n";
             (*itr)->status = STOPPED;
+            (*itr)->startTime = time(nullptr); //TODO make sure it is supposed to be started over
 
             if (kill((*itr)->pid, sig_num) == -1)
                 perror("smash error: kill failed");
@@ -24,7 +25,7 @@ void ctrlZHandler(int sig_num) {
 }
 
 void ctrlCHandler(int sig_num) {
-  // TODO: Add your implementation
+    // TODO: Add your implementation
     std::cout << "smash: got ctrl-C\n";
     JobsList* jobsList = &SmallShell::getInstance().jobsList;
     for (list<JobsList::JobEntry*>::iterator itr = jobsList->jobsList.begin(); itr != jobsList->jobsList.end(); itr++)
@@ -40,7 +41,7 @@ void ctrlCHandler(int sig_num) {
 }
 
 void alarmHandler(int sig_num) {
-  // TODO: Add your implementation
+    // TODO: Add your implementation
     std::cout << "smash: got an alarm\n"; //should be printed anyway ??
     list<TimedProcess*>* timedProcesses = &(SmallShell::getInstance().timedProcesses);
 
@@ -62,4 +63,3 @@ void alarmHandler(int sig_num) {
         }
     }
 }
-
