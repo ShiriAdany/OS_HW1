@@ -519,7 +519,7 @@ void ForegroundCommand::execute() {
                 {
                     done = true;
                     (*itr)->status = FOREGROUND;
-                    (*itr)->startTime = time(nullptr); //TODO make sure it is supposed to be started over
+                    //(*itr)->startTime = time(nullptr); //TODO make sure it is supposed to be started over
                     std::cout << (*itr)->cmd << " : " << (*itr)->pid<< "\n";
                     if (kill((*itr)->pid,SIGCONT) == -1)
                         perror("smash error: kill failed");
@@ -588,7 +588,7 @@ void BackgroundCommand::execute() {
                     }
                     done = true;
                     (*itr)->status = BACKGROUND; //was STOPPED
-                    (*itr)->startTime = time(nullptr); //TODO make sure it is supposed to be started over
+                    //(*itr)->startTime = time(nullptr); //TODO make sure it is supposed to be started over
                     std::cout << (*itr)->cmd << " : " << (*itr)->pid<< "\n";
                     if (kill((*itr)->pid,SIGCONT) == -1)
                         perror("smash error: kill failed");
