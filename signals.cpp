@@ -8,12 +8,12 @@ using namespace std;
 
 void ctrlZHandler(int sig_num) {
     // TODO: Add your implementation
+    std::cout << "smash: got ctrl-Z\n";
     JobsList* jobsList = &SmallShell::getInstance().jobsList;
     for (list<JobsList::JobEntry*>::iterator itr = jobsList->jobsList.begin(); itr != jobsList->jobsList.end(); itr++)
     {
         if ((*itr)->status == FOREGROUND)
         {
-            std::cout << "smash: got ctrl-Z\n";
             (*itr)->status = STOPPED;
             (*itr)->startTime = time(nullptr); //TODO make sure it is supposed to be started over
 
