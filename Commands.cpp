@@ -98,7 +98,9 @@ SmallShell::SmallShell() : previousPath("")  {
     }else {
         perror("smash error: getcwd failed");
     }
-    pid = getpid();
+    pid = getpid(); //todo: add if fails?
+
+
 // TODO: add your implementation
 //printf(prompt);
 }
@@ -299,25 +301,40 @@ void ChangeDirCommand::execute() {
             std::cerr << "smash error: cd: OLDPWD not set\n";
             return;
         }
-        std::string temp = *previousPath;
-        *previousPath = SmallShell::getInstance().currentPath;
-        SmallShell::getInstance().currentPath = temp;
 
+        if (chdir(previousPath->c_str()) == 0) //Success
+        {
+            std::string temp = *previousPath;
+            *previousPath = SmallShell::getInstance().currentPath;
+            SmallShell::getInstance().currentPath = temp;
+        }
+        else {
+            perror("smash error: chdir failed");
+        }
     }
     else
     {
-        std::string temp = SmallShell::getInstance().currentPath;
-        SmallShell::getInstance().currentPath = newPath;
-        *previousPath = temp;
+        if (newPath[0] != '/')
+            newPath = SmallShell::getInstance().currentPath + "/" + newPath;
+        if (chdir(newPath.c_str()) == 0) //Success
+        {
+            std::string temp = SmallShell::getInstance().currentPath;
+            SmallShell::getInstance().currentPath = newPath;
+            *previousPath = temp;
+        }
+        else {
+            perror("smash error: chdir failed");
+        }
+
     }
 
-    if (chdir(SmallShell::getInstance().currentPath.c_str()) == 0) //Success
-    {
-
-    }
-    else {
-        perror("smash error: cd failed");
-    }
+//    if (chdir(SmallShell::getInstance().currentPath.c_str()) == 0) //Success
+//    {
+//
+//    }
+//    else {
+//        perror("smash error: cd failed");
+//    }
 }
 
 JobsList::JobEntry::JobEntry(int jobId, int pid, JobStatus status, string command) : jobId(jobId), pid(pid), status(status), cmd(command)
@@ -572,7 +589,7 @@ void BackgroundCommand::execute() {
     if (args[1])
     {
         std::string s = args[1];
-        if (std::all_of(s.begin(), s.end(), ::isdigit))
+        if (std::all_of(s.begin(), s.end(), ::isdigit) || (s[0] == '-' && std::all_of(s.begin() + 1, s.end(), ::isdigit)))
         {
             int id = stoi(s);
             bool done = false;
@@ -617,7 +634,7 @@ void BackgroundCommand::execute() {
 
         if (max == -1)
         {
-            std::cerr << "smash error: there is no jobs to resume\n"; //there ARE no jobs to resume
+            std::cerr << "smash error: bg: there is no stopped jobs to resume\n"; //there ARE no jobs to resume
             return;
         }
 
@@ -765,7 +782,7 @@ void RedirectionCommand::execute() {
         int length = s.length() - from;
         end = _trim(s.substr(from,length));
         close(1);
-        open(end.c_str(), O_WRONLY | O_CREAT | O_APPEND, "ra");
+        open(end.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
     }
     else //>
     {
@@ -773,7 +790,7 @@ void RedirectionCommand::execute() {
         int length = s.length() - from;
         end = _trim(s.substr(from,length));
         close(1);
-        open(end.c_str(), O_WRONLY | O_CREAT, "rw");
+        open(end.c_str(), O_WRONLY | O_CREAT, 0666);
     }
     SmallShell::getInstance().executeCommand(start.c_str());
     dup2(stdout_fd, 1);
@@ -981,7 +998,7 @@ void TimeoutCommand::execute() {
         std::cerr << "smash error: timeout: invalid arguments\n";
         return;
     }
-    int duration = stoi(args[1]); //todo check valid, check not 0
+    int duration = stoi(args[1]); //todo check valid, check not 0, was told it cant be 0
 
     alarm(duration);
 
