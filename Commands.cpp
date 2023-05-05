@@ -671,7 +671,9 @@ void KillCommand::execute() {
         signum_s.erase(0,1); // remove the '-' from the string
 
         std::string id_s = args[2];
-        if (std::all_of(signum_s.begin(), signum_s.end(), ::isdigit) && std::all_of(id_s.begin(), id_s.end(), ::isdigit))
+        if (std::all_of(signum_s.begin(), signum_s.end(), ::isdigit) &&
+            (std::all_of(id_s.begin(), id_s.end(), ::isdigit) ||
+            (id_s[0] == '-' && std::all_of(id_s.begin()+1, id_s.end(), ::isdigit))) )
         {
             int id = stoi(id_s);
             int signum = stoi(signum_s);
@@ -682,9 +684,11 @@ void KillCommand::execute() {
                 if ((*itr)->jobId == id)
                 {
                     done = true;
-                    std::cout << "signal number " << signum << " was sent to pid " << (*itr)->pid << "\n";
+
                     if (kill((*itr)->pid,signum) == -1)
                         perror("smash error: kill failed");
+                    else
+                        std::cout << "signal number " << signum << " was sent to pid " << (*itr)->pid << "\n";
                     if (signum == 20)
                         (*itr)->status = STOPPED;
                 }

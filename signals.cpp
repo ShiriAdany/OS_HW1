@@ -14,12 +14,30 @@ void ctrlZHandler(int sig_num) {
     {
         if ((*itr)->status == FOREGROUND)
         {
-            (*itr)->status = STOPPED;
-            (*itr)->startTime = time(nullptr); //TODO make sure it is supposed to be started over
+            JobsList::JobEntry* job = (*itr);
+            int status;
+            pid_t result = waitpid(job->pid, &status, WNOHANG);
+            if (result == 0) {
+                // Child still alive
+                (*itr)->status = STOPPED;
+                (*itr)->startTime = time(nullptr); //TODO make sure it is supposed to be started over
 
-            if (kill((*itr)->pid, sig_num) == -1)
-                perror("smash error: kill failed");
-            std::cout << "smash: process " << ((*itr)->pid) << " was stopped\n";
+                if (kill((*itr)->pid, sig_num) == -1)
+                    perror("smash error: kill failed");
+                std::cout << "smash: process " << ((*itr)->pid) << " was stopped\n";
+            } else if (result == -1) {
+                // Error
+                // usually means finished
+            } else {
+                // Child exited
+            }
+
+//            (*itr)->status = STOPPED;
+//            (*itr)->startTime = time(nullptr); //TODO make sure it is supposed to be started over
+//
+//            if (kill((*itr)->pid, sig_num) == -1)
+//                perror("smash error: kill failed");
+//            std::cout << "smash: process " << ((*itr)->pid) << " was stopped\n";
         }
     }
 }
@@ -32,9 +50,23 @@ void ctrlCHandler(int sig_num) {
     {
         if ((*itr)->status == FOREGROUND)
         {
-            if (kill((*itr)->pid, sig_num) == -1)
-                perror("smash error: kill failed");
-            std::cout << "smash: process " << ((*itr)->pid) << " was killed\n";
+            JobsList::JobEntry* job = (*itr);
+            int status;
+            pid_t result = waitpid(job->pid, &status, WNOHANG);
+            if (result == 0) {
+                // Child still alive
+                if (kill((*itr)->pid, sig_num) == -1)
+                    perror("smash error: kill failed");
+                std::cout << "smash: process " << ((*itr)->pid) << " was killed\n";
+            } else if (result == -1) {
+                // Error
+                // usually means finished
+            } else {
+                // Child exited
+            }
+//            if (kill((*itr)->pid, sig_num) == -1)
+//                perror("smash error: kill failed");
+//            std::cout << "smash: process " << ((*itr)->pid) << " was killed\n";
         }
     }
     // If there is no process running in the foreground, then the smash should ignore them.
