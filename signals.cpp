@@ -79,7 +79,7 @@ void alarmHandler(int sig_num) {
 
     for (list<TimedProcess*>::iterator itr = timedProcesses->begin(); itr != timedProcesses->end(); itr++)
     {
-        if ((*itr)->duration == difftime(time(nullptr), (*itr)->startTime)) //maybe need to use >= and check for the minimum
+        if ((*itr)->duration <= difftime(time(nullptr), (*itr)->startTime)) //maybe need to use >= and check for the minimum
         {
             //std::cout << "exists \n";
             if (waitpid((*itr)->pid, nullptr, WNOHANG) == 0) //still alive

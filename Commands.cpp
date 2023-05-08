@@ -1001,7 +1001,8 @@ void TimeoutCommand::execute() {
     while (cmd_without_timeout[i])
     {
         cmd += cmd_without_timeout[i];
-        cmd += " ";
+        if(cmd_without_timeout[i+1])
+            cmd += " ";
         i++;
     }
 //    if (isBackground)
