@@ -11,9 +11,9 @@
 class Command {
 // TODO: Add your data members
 protected:
-char* args[20];
+    char* args[20];
  public:
-    const char* cmd_line;
+    std::string cmd_line;
     std::string original_cmd_line;
     int pid;
     bool isBackground;
@@ -23,6 +23,7 @@ char* args[20];
   Command(const char* cmd_line, int pid);
   virtual ~Command();
   virtual void execute() = 0;
+
   //virtual void prepare();
   //virtual void cleanup();
   // TODO: Add your extra methods if needed

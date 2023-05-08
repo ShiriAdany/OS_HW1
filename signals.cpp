@@ -84,7 +84,7 @@ void alarmHandler(int sig_num) {
             //std::cout << "exists \n";
             if (waitpid((*itr)->pid, nullptr, WNOHANG) == 0) //still alive
             {
-                std::cout << "smash: " << (*itr)->cmd_line << " timed out!\n";
+                std::cout << "smash: timeout " << (*itr)->duration << " " << (*itr)->cmd_line << " timed out!\n";
                 if (kill((*itr)->pid, SIGKILL) == -1)
                     perror("smash error: kill failed");
                 itr = timedProcesses->erase(itr);

@@ -190,6 +190,7 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
 }
 
 void SmallShell::executeCommand(const char *cmd_line, bool isTimed, int duration) {
+
     Command* cmd = CreateCommand(cmd_line);
     cmd->isTimed = isTimed;
     cmd->duration = duration;
@@ -256,6 +257,7 @@ Command::~Command() {
 for (int i = 0 ; i < 20; i++)
     free(args[i]);
 }
+
 
 ShowPidCommand::ShowPidCommand(const char *cmd_line) : BuiltInCommand(cmd_line) {
 
@@ -400,7 +402,17 @@ void JobsList::printJobsList() {
         JobEntry* job = (*itr);
         double elapsed = difftime(time(nullptr),job->startTime);
 
-        std::cout << "[" << job->jobId << "] " << job->cmd << " : " << job->pid << " " << elapsed << " secs";
+        list<TimedProcess*>* timedProcesses = &(SmallShell::getInstance().timedProcesses);
+        std::cout << "[" << job->jobId << "] ";
+        for (list<TimedProcess*>::iterator itr = timedProcesses->begin(); itr != timedProcesses->end(); itr++)
+        {
+            if((*itr)->pid == job->pid)
+            {
+                std::cout << "timeout " << (*itr)->duration << " ";
+            }
+        }
+
+             std::cout << job->cmd << " : " << job->pid << " " << elapsed << " secs";
         if (job->status == STOPPED)
             std::cout << " (stopped)";
         std::cout << "\n";
@@ -447,7 +459,6 @@ void ExternalCommand::execute() {
         }
     }
 
-
     int p = fork();
     if (p == -1)
         perror("smash error: fork failed");
@@ -459,7 +470,7 @@ void ExternalCommand::execute() {
         {
             string s = "bash";
             string c = "-c";
-            char* arr[] = {const_cast<char *>(s.c_str()), const_cast<char *>(c.c_str()), const_cast<char *>(cmd_line), NULL};
+            char* arr[] = {const_cast<char *>(s.c_str()), const_cast<char *>(c.c_str()), const_cast<char *>(cmd_line.c_str()), NULL};
             execvp("bash", arr);
         }
         else
@@ -481,7 +492,8 @@ void ExternalCommand::execute() {
         if (isTimed)
         {
             TimedProcess* timedProcess = new TimedProcess();
-            timedProcess->cmd_line = SmallShell::getInstance().jobsList.getLastJob()->cmd;
+            //timedProcess->cmd_line = SmallShell::getInstance().jobsList.getLastJob()->cmd;
+            timedProcess->cmd_line = original_cmd_line;
             timedProcess->startTime = SmallShell::getInstance().jobsList.getLastJob()->startTime;
             timedProcess->duration = duration;
             timedProcess->pid = SmallShell::getInstance().jobsList.getLastJob()->pid;
@@ -977,26 +989,29 @@ TimeoutCommand::TimeoutCommand(const char *cmd_line) : BuiltInCommand(cmd_line) 
 
 void TimeoutCommand::execute() {
     int i = 2;
-    string cmd = "";
     if (!args[1] || !args[2])
     {
         std::cerr << "smash error: timeout: invalid arguments\n";
         return;
     }
-    while (args[i])
+    char *cmd_without_timeout [20];
+    _parseCommandLine(original_cmd_line.c_str(),cmd_without_timeout);
+
+    string cmd = "";
+    while (cmd_without_timeout[i])
     {
-        cmd += args[i];
+        cmd += cmd_without_timeout[i];
         cmd += " ";
         i++;
     }
-    if (isBackground)
-        cmd += "&";
+//    if (isBackground)
+//        cmd += "&";
 
-    if (!args[1] || !args[2])
-    {
-        std::cerr << "smash error: timeout: invalid arguments\n";
-        return;
-    }
+//    if (!args[1] || !args[2])
+//    {
+//        std::cerr << "smash error: timeout: invalid arguments\n";
+//        return;
+//    }
     string s= args[1];
     if (!std::all_of(s.begin(), s.end(), ::isdigit)) {
         std::cerr << "smash error: timeout: invalid arguments\n";
@@ -1007,7 +1022,10 @@ void TimeoutCommand::execute() {
     alarm(duration);
 
     //isTimed = true;
+
     SmallShell::getInstance().executeCommand(cmd.c_str(), true, duration);
+    //SmallShell::getInstance().executeCommand(cmd_line, true, duration, cmd.c_str());
+
     //delete timedProcess;
     //todo delete on the other new too
 }
