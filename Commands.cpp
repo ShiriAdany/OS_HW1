@@ -801,27 +801,60 @@ void RedirectionCommand::execute() {
     std::string s = cmd_line;
     std::string start = _trim(s.substr(0,s.find('>')));
     std::string end;
-    int stdout_fd = dup(1);
 
-    if (s[s.find('>')] == s[s.find('>') + 1]) //>>
+    int pid = fork();
+    if (pid == 0)
     {
-        int from = s.find('>') + 2;
-        int length = s.length() - from;
-        end = _trim(s.substr(from,length));
         close(1);
-        open(end.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
+        if (s[s.find('>')] == s[s.find('>') + 1]) //>>
+        {
+            int from = s.find('>') + 2;
+            int length = s.length() - from;
+            end = _trim(s.substr(from,length));
+            if (open(end.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0777) == -1)
+            {
+                perror("smash error: open failed");
+                exit(1);
+            }
+        }
+        else //>
+        {
+            int from = s.find('>') + 1;
+            int length = s.length() - from;
+            end = _trim(s.substr(from,length));
+            if (open(end.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0777) == -1)
+            {
+                perror("smash error: open failed");
+                exit(1);
+            }
+        }
+        SmallShell::getInstance().executeCommand(start.c_str());
+        //close(1); //why it works better without ?????
+        exit(0);
     }
-    else //>
-    {
-        int from = s.find('>') + 1;
-        int length = s.length() - from;
-        end = _trim(s.substr(from,length));
-        close(1);
-        open(end.c_str(), O_WRONLY | O_CREAT, 0666);
-    }
-    SmallShell::getInstance().executeCommand(start.c_str());
-    dup2(stdout_fd, 1);
-    close(stdout_fd);
+    waitpid(pid, nullptr,0);
+    return ;
+//    int stdout_fd = dup(1);
+//
+//    if (s[s.find('>')] == s[s.find('>') + 1]) //>>
+//    {
+//        int from = s.find('>') + 2;
+//        int length = s.length() - from;
+//        end = _trim(s.substr(from,length));
+//        close(1);
+//        open(end.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
+//    }
+//    else //>
+//    {
+//        int from = s.find('>') + 1;
+//        int length = s.length() - from;
+//        end = _trim(s.substr(from,length));
+//        close(1);
+//        open(end.c_str(), O_WRONLY | O_CREAT, 0666);
+//    }
+//    SmallShell::getInstance().executeCommand(start.c_str());
+//    dup2(stdout_fd, 1);
+//    close(stdout_fd);
 }
 
 PipeCommand::PipeCommand(const char *cmd_line) : Command(cmd_line,0) {
