@@ -423,7 +423,18 @@ void JobsList::killAllJobs()
 {
     for (list<JobEntry*>::iterator itr = jobsList.begin(); itr != jobsList.end(); itr++) {
         JobEntry* job = (*itr);
-        std::cout << job->pid << ": " << job->cmd << "\n";
+        std::cout << job->pid << ": ";
+
+        list<TimedProcess*>* timedProcesses = &(SmallShell::getInstance().timedProcesses);
+        for (list<TimedProcess*>::iterator itr = timedProcesses->begin(); itr != timedProcesses->end(); itr++)
+        {
+            if((*itr)->pid == job->pid)
+            {
+                std::cout << "timeout " << (*itr)->duration << " ";
+            }
+        }
+
+        std::cout << job->cmd << "\n";
         if (kill(job->pid, SIGKILL) == -1)
             perror("smash error: kill failed");
 
@@ -1020,12 +1031,21 @@ void TimeoutCommand::execute() {
     }
     int duration = stoi(args[1]); //todo check valid, check not 0, was told it cant be 0
 
-    alarm(duration);
+    //alarm(duration);
 
-    //isTimed = true;
+    double min_duration = duration;
+
+    list<TimedProcess*>* timedProcesses = &(SmallShell::getInstance().timedProcesses);
+    for (list<TimedProcess*>::iterator itr = timedProcesses->begin(); itr != timedProcesses->end(); itr++) {
+        double time_to_run =  abs((*itr)->duration - difftime(time(nullptr), (*itr)->startTime));
+        if (time_to_run < min_duration)
+        {
+            min_duration = time_to_run;
+        }
+    }
+    alarm(min_duration); //TODO
 
     SmallShell::getInstance().executeCommand(cmd.c_str(), true, duration);
-    //SmallShell::getInstance().executeCommand(cmd_line, true, duration, cmd.c_str());
 
     //delete timedProcess;
     //todo delete on the other new too

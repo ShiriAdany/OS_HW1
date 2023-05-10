@@ -3,6 +3,8 @@
 #include <sys/wait.h>
 #include "signals.h"
 #include "Commands.h"
+#include <unistd.h>
+
 
 using namespace std;
 
@@ -77,8 +79,15 @@ void alarmHandler(int sig_num) {
     std::cout << "smash: got an alarm\n"; //should be printed anyway ??
     list<TimedProcess*>* timedProcesses = &(SmallShell::getInstance().timedProcesses);
 
+    double min_time_last = 0;
+
     for (list<TimedProcess*>::iterator itr = timedProcesses->begin(); itr != timedProcesses->end(); itr++)
     {
+        double current_itr_diff = ((*itr)->duration - difftime(time(nullptr), (*itr)->startTime));
+        double first_diff = difftime(time(nullptr), timedProcesses->front()->startTime);
+        min_time_last = (timedProcesses->front()->duration - first_diff);
+
+
         if ((*itr)->duration <= difftime(time(nullptr), (*itr)->startTime)) //maybe need to use >= and check for the minimum
         {
             //std::cout << "exists \n";
@@ -93,5 +102,11 @@ void alarmHandler(int sig_num) {
             //else
             //    std::cout << "died already \n";
         }
+        else{
+            if (current_itr_diff < min_time_last)
+                min_time_last = current_itr_diff;
+        }
+
     }
+    alarm(min_time_last);
 }
