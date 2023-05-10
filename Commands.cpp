@@ -482,15 +482,17 @@ void ExternalCommand::execute() {
             string s = "bash";
             string c = "-c";
             char* arr[] = {const_cast<char *>(s.c_str()), const_cast<char *>(c.c_str()), const_cast<char *>(cmd_line.c_str()), NULL};
-            execvp("bash", arr);
+            if(execvp("bash", arr) == -1)
+                exit(EXIT_FAILURE);
+
         }
         else
-            execvp(args[0],args);
+            if(execvp(args[0],args) == -1)
+                exit(EXIT_FAILURE);
+
     } else {
 
         this->pid = p; //important?
-
-
 
         if (isBackground)
         {
