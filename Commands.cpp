@@ -848,7 +848,7 @@ void RedirectionCommand::execute() {
         int length = s.length() - from;
         end = _trim(s.substr(from,length));
         close(1);
-        fd = open(end.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0777);
+        fd = open(end.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0655);
         if (fd == -1)
         {
             perror("smash error: open failed");
@@ -861,7 +861,7 @@ void RedirectionCommand::execute() {
         int length = s.length() - from;
         end = _trim(s.substr(from,length));
         //close(1);
-        fd = open(end.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0777);
+        fd = open(end.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0655);
         if (fd == -1)
         {
             perror("smash error: open failed");
@@ -984,12 +984,16 @@ void GetFileTypeCommand::execute() {
     struct stat statbuff;
     if (args[2])
     {
-        std::cerr << "smash error: gettype: invalid arguments\n";
+        std::cerr << "smash error: getfiletype: invalid arguments\n"; /// important: changed it like instructions on piazza (look up gettype_
         return;
     }
-    if (stat(args[1], &statbuff) != 0) ///syscall ? what is it? what if no such file? << need to print with perror i think
+    if (lstat(args[1], &statbuff) != 0) ///syscall ? what is it? what if no such file? << need to print with perror i think
+    {
+        perror("smash error: lstat failed");
         return;
-    std::cout << args[1] << "'s type is “";
+    }
+    std::cout << args[1] << "’s type is \""; ///important: changed " from old " as we copied from pdf
+    //todo check about ' type!!! asked on piazza
     switch (statbuff.st_mode & S_IFMT) {
         case S_IFBLK:  std::cout <<"block device" ;           break;
         case S_IFCHR:  std::cout <<"character device" ;       break;
@@ -999,16 +1003,16 @@ void GetFileTypeCommand::execute() {
         case S_IFREG:  std::cout <<"regular file";            break;
         case S_IFSOCK: std::cout <<"socket";                  break;
     }
-    std::cout << "“ and takes up " << getSize(args[1])  << " bytes\n";
+    std::cout << "\" and takes up " << getSize(args[1])  << " bytes\n";
 }
 
 int GetFileTypeCommand::getSize(std::string file) {
     struct stat statbuff;
     //std::cout <<  "\n" << file << "  " << file.find('/')<< "\n";
-    stat(file.c_str(), &statbuff);
+    lstat(file.c_str(), &statbuff);
     if (!S_ISDIR(statbuff.st_mode))
         return statbuff.st_size;
-    int size = 0; //should we init this to 512 ? nah no way right?
+    int size = statbuff.st_size; //should we init this to 512 ? nah no way right?
     DIR *dr;
     struct dirent *en;
     dr = opendir(file.c_str()); //open all directory
@@ -1036,6 +1040,11 @@ void ChmodCommand::execute() {
     std::string path = args[2];
     std::string new_mode_s = args[1];
     if (std::all_of(new_mode_s.begin(), new_mode_s.end(), ::isdigit)) {
+        if (stoi(new_mode_s) >= 10000)
+        {
+            std::cerr << "smash error: chmod: invalid arguments\n";
+            return; //todo remove this as it's only for new tests?
+        }
         mode_t new_mode = stoi(new_mode_s,0,8);
         if(chmod(path.c_str(), new_mode) == -1)
         {
