@@ -16,6 +16,9 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <dirent.h>
+#include <cmath>
+#include <sys/time.h>
+
 
 
 
@@ -36,57 +39,57 @@ const std::string WHITESPACE = " \n\r\t\f\v";
 
 string _ltrim(const std::string& s)
 {
-  size_t start = s.find_first_not_of(WHITESPACE);
-  return (start == std::string::npos) ? "" : s.substr(start);
+    size_t start = s.find_first_not_of(WHITESPACE);
+    return (start == std::string::npos) ? "" : s.substr(start);
 }
 
 string _rtrim(const std::string& s)
 {
-  size_t end = s.find_last_not_of(WHITESPACE);
-  return (end == std::string::npos) ? "" : s.substr(0, end + 1);
+    size_t end = s.find_last_not_of(WHITESPACE);
+    return (end == std::string::npos) ? "" : s.substr(0, end + 1);
 }
 
 string _trim(const std::string& s)
 {
-  return _rtrim(_ltrim(s));
+    return _rtrim(_ltrim(s));
 }
 
 int _parseCommandLine(const char* cmd_line, char** args) {
-  FUNC_ENTRY()
-  int i = 0;
-  std::istringstream iss(_trim(string(cmd_line)).c_str());
-  for(std::string s; iss >> s; ) {
-    args[i] = (char*)malloc(s.length()+1);
-    memset(args[i], 0, s.length()+1);
-    strcpy(args[i], s.c_str());
-    args[++i] = NULL;
-  }
-  return i;
+    FUNC_ENTRY()
+    int i = 0;
+    std::istringstream iss(_trim(string(cmd_line)).c_str());
+    for(std::string s; iss >> s; ) {
+        args[i] = (char*)malloc(s.length()+1);
+        memset(args[i], 0, s.length()+1);
+        strcpy(args[i], s.c_str());
+        args[++i] = NULL;
+    }
+    return i;
 
-  FUNC_EXIT()
+    FUNC_EXIT()
 }
 
 bool _isBackgroundComamnd(const char* cmd_line) {
-  const string str(cmd_line);
-  return str[str.find_last_not_of(WHITESPACE)] == '&';
+    const string str(cmd_line);
+    return str[str.find_last_not_of(WHITESPACE)] == '&';
 }
 
 void _removeBackgroundSign(char* cmd_line) {
-  const string str(cmd_line);
-  // find last character other than spaces
-  unsigned int idx = str.find_last_not_of(WHITESPACE);
-  // if all characters are spaces then return
-  if (idx == string::npos) {
-    return;
-  }
-  // if the command line does not end with & then return
-  if (cmd_line[idx] != '&') {
-    return;
-  }
-  // replace the & (background sign) with space and then remove all tailing spaces.
-  cmd_line[idx] = ' ';
-  // truncate the command line string up to the last non-space character
-  cmd_line[str.find_last_not_of(WHITESPACE, idx) + 1] = 0;
+    const string str(cmd_line);
+    // find last character other than spaces
+    unsigned int idx = str.find_last_not_of(WHITESPACE);
+    // if all characters are spaces then return
+    if (idx == string::npos) {
+        return;
+    }
+    // if the command line does not end with & then return
+    if (cmd_line[idx] != '&') {
+        return;
+    }
+    // replace the & (background sign) with space and then remove all tailing spaces.
+    cmd_line[idx] = ' ';
+    // truncate the command line string up to the last non-space character
+    cmd_line[str.find_last_not_of(WHITESPACE, idx) + 1] = 0;
 }
 
 // TODO: Add your implementation for classes in Commands.h 
@@ -113,80 +116,80 @@ SmallShell::~SmallShell() {
 * Creates and returns a pointer to Command class which matches the given command line (cmd_line)
 */
 Command * SmallShell::CreateCommand(const char* cmd_line) {
-  string cmd_s = _trim(string(cmd_line));
-  string firstWord = cmd_s.substr(0, cmd_s.find_first_of(" \n"));
+    string cmd_s = _trim(string(cmd_line));
+    string firstWord = cmd_s.substr(0, cmd_s.find_first_of(" \n"));
 
-  for (int i = 0; i < cmd_s.length(); i++)
-  {
-      if (cmd_s[i] == '>')
-      {
-          //>
-          //>>
-          return new RedirectionCommand(cmd_line);
-      }
-      if (cmd_s[i] == '|')
-      {
-          // |
-          // |&
-          return new PipeCommand(cmd_line);
-      }
-  }
-  if (firstWord.compare("chprompt") == 0)
-  {
-      return new ChpromptCommand(cmd_line);
-  }
-  else if (firstWord.compare("showpid") == 0)
-  {
-      return new ShowPidCommand(cmd_line);
-  }
-  else if (firstWord.compare("pwd") == 0)
-  {
-      return new GetCurrDirCommand(cmd_line);
-  }
-  else if (firstWord.compare("cd") == 0)
-  {
-      return new ChangeDirCommand(cmd_line,nullptr);
-  }
-  else if (firstWord.compare("jobs") == 0)
-  {
-      return new JobsCommand(cmd_line,nullptr);
-  }
-  else if (firstWord.compare("fg") == 0)
-  {
-      return new ForegroundCommand(cmd_line,nullptr);
-  }
-  else if (firstWord.compare("bg") == 0)
-  {
-      return new BackgroundCommand(cmd_line,nullptr);
-  }
-  else if (firstWord.compare("quit") == 0)
-  {
-      return new QuitCommand(cmd_line,nullptr);
-  }
-  else if (firstWord.compare("kill") == 0)
-  {
-      return new KillCommand(cmd_line,nullptr);
-  }
-  else if (firstWord.compare("setcore") == 0)
-  {
-      return new SetcoreCommand(cmd_line);
-  }
-  else if (firstWord.compare("getfiletype") == 0)
-  {
-      return new GetFileTypeCommand(cmd_line);
-  }
-  else if (firstWord.compare("chmod") == 0)
-  {
-      return new ChmodCommand(cmd_line);
-  }
-  else if (firstWord.compare("timeout") == 0)
-  {
-      return new TimeoutCommand(cmd_line);
-  }
-  else
-  {
-      return new ExternalCommand(cmd_line);
-  }
+    for (int i = 0; i < cmd_s.length(); i++)
+    {
+        if (cmd_s[i] == '>')
+        {
+            //>
+            //>>
+            return new RedirectionCommand(cmd_line);
+        }
+        if (cmd_s[i] == '|')
+        {
+            // |
+            // |&
+            return new PipeCommand(cmd_line);
+        }
+    }
+    if (firstWord.compare("chprompt") == 0)
+    {
+        return new ChpromptCommand(cmd_line);
+    }
+    else if (firstWord.compare("showpid") == 0)
+    {
+        return new ShowPidCommand(cmd_line);
+    }
+    else if (firstWord.compare("pwd") == 0)
+    {
+        return new GetCurrDirCommand(cmd_line);
+    }
+    else if (firstWord.compare("cd") == 0)
+    {
+        return new ChangeDirCommand(cmd_line,nullptr);
+    }
+    else if (firstWord.compare("jobs") == 0)
+    {
+        return new JobsCommand(cmd_line,nullptr);
+    }
+    else if (firstWord.compare("fg") == 0)
+    {
+        return new ForegroundCommand(cmd_line,nullptr);
+    }
+    else if (firstWord.compare("bg") == 0)
+    {
+        return new BackgroundCommand(cmd_line,nullptr);
+    }
+    else if (firstWord.compare("quit") == 0)
+    {
+        return new QuitCommand(cmd_line,nullptr);
+    }
+    else if (firstWord.compare("kill") == 0)
+    {
+        return new KillCommand(cmd_line,nullptr);
+    }
+    else if (firstWord.compare("setcore") == 0)
+    {
+        return new SetcoreCommand(cmd_line);
+    }
+    else if (firstWord.compare("getfiletype") == 0)
+    {
+        return new GetFileTypeCommand(cmd_line);
+    }
+    else if (firstWord.compare("chmod") == 0)
+    {
+        return new ChmodCommand(cmd_line);
+    }
+    else if (firstWord.compare("timeout") == 0)
+    {
+        return new TimeoutCommand(cmd_line);
+    }
+    else
+    {
+        return new ExternalCommand(cmd_line);
+    }
 }
 
 void SmallShell::executeCommand(const char *cmd_line, bool isTimed, int duration) {
@@ -196,8 +199,8 @@ void SmallShell::executeCommand(const char *cmd_line, bool isTimed, int duration
     cmd->duration = duration;
     cmd->execute();
     //add support for & !!
-  // TODO: Add your implementation here
-  // Please note that you must fork smash process for some commands (e.g., external commands....)
+    // TODO: Add your implementation here
+    // Please note that you must fork smash process for some commands (e.g., external commands....)
 }
 
 ChpromptCommand::ChpromptCommand(const char* cmd_line) : BuiltInCommand(cmd_line) {
@@ -254,8 +257,8 @@ Command::Command(const char *cmd_line, int pid) : cmd_line(cmd_line), original_c
 }
 
 Command::~Command() {
-for (int i = 0 ; i < 20; i++)
-    free(args[i]);
+    for (int i = 0 ; i < 20; i++)
+        free(args[i]);
 }
 
 
@@ -414,7 +417,7 @@ void JobsList::printJobsList() {
             }
         }
 
-             std::cout << job->cmd << " : " << job->pid << " " << elapsed << " secs";
+        std::cout << job->cmd << " : " << job->pid << " " << elapsed << " secs";
         if (job->status == STOPPED)
             std::cout << " (stopped)";
         std::cout << "\n";
@@ -489,8 +492,8 @@ void ExternalCommand::execute() {
 
         }
         else
-            if(execvp(args[0],args) == -1)
-                exit(EXIT_FAILURE);
+        if(execvp(args[0],args) == -1)
+            exit(EXIT_FAILURE);
 
     } else {
 
@@ -656,8 +659,8 @@ void BackgroundCommand::execute() {
         int max = -1;
 
         for (list<JobsList::JobEntry*>::iterator itr = jobsList->jobsList.begin(); itr != jobsList->jobsList.end(); itr++)
-                if ((*itr)->status == STOPPED)
-                    max = (*itr)->jobId;
+            if ((*itr)->status == STOPPED)
+                max = (*itr)->jobId;
 
         if (max == -1)
         {
@@ -700,7 +703,7 @@ void KillCommand::execute() {
         std::string id_s = args[2];
         if (std::all_of(signum_s.begin(), signum_s.end(), ::isdigit) &&
             (std::all_of(id_s.begin(), id_s.end(), ::isdigit) ||
-            (id_s[0] == '-' && std::all_of(id_s.begin()+1, id_s.end(), ::isdigit))) )
+             (id_s[0] == '-' && std::all_of(id_s.begin()+1, id_s.end(), ::isdigit))) )
         {
             int id = stoi(id_s);
             int signum = stoi(signum_s);
@@ -1080,14 +1083,7 @@ void TimeoutCommand::execute() {
             cmd += " ";
         i++;
     }
-//    if (isBackground)
-//        cmd += "&";
 
-//    if (!args[1] || !args[2])
-//    {
-//        std::cerr << "smash error: timeout: invalid arguments\n";
-//        return;
-//    }
     string s= args[1];
     if (!std::all_of(s.begin(), s.end(), ::isdigit)) {
         std::cerr << "smash error: timeout: invalid arguments\n";
@@ -1107,7 +1103,22 @@ void TimeoutCommand::execute() {
             min_duration = time_to_run;
         }
     }
-    alarm(min_duration); //TODO
+    alarm(std::round(min_duration)); //TODO
+
+//    struct itimerval timer;
+//
+//    int seconds = (int)min_duration;
+//    int microseconds = (int)((min_duration - seconds) * 1000000);
+//
+//    timer.it_value.tv_sec = seconds;
+//    timer.it_value.tv_usec = microseconds;
+//
+//    // Set interval to 0 to disable repeating
+//    timer.it_interval.tv_sec = 0;
+//    timer.it_interval.tv_usec = 0;
+//
+//    // Start timer
+//    setitimer(ITIMER_REAL, &timer, NULL);
 
     SmallShell::getInstance().executeCommand(cmd.c_str(), true, duration);
 
