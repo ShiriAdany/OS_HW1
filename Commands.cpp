@@ -409,13 +409,13 @@ void JobsList::printJobsList() {
 
         list<TimedProcess*>* timedProcesses = &(SmallShell::getInstance().timedProcesses);
         std::cout << "[" << job->jobId << "] ";
-        for (list<TimedProcess*>::iterator itr = timedProcesses->begin(); itr != timedProcesses->end(); itr++)
-        {
-            if((*itr)->pid == job->pid)
-            {
-                std::cout << "timeout " << (*itr)->duration << " ";
-            }
-        }
+//        for (list<TimedProcess*>::iterator itr = timedProcesses->begin(); itr != timedProcesses->end(); itr++)
+//        {
+//            if((*itr)->pid == job->pid)
+//            {
+//                std::cout << "timeout " << (*itr)->duration << " ";
+//            }
+//        }
 
         std::cout << job->cmd << " : " << job->pid << " " << elapsed << " secs";
         if (job->status == STOPPED)
@@ -492,8 +492,8 @@ void ExternalCommand::execute() {
 
         }
         else
-        if(execvp(args[0],args) == -1)
-            exit(EXIT_FAILURE);
+            if(execvp(args[0],args) == -1)
+                exit(EXIT_FAILURE);
 
     } else {
 
@@ -1086,7 +1086,9 @@ void TimeoutCommand::execute() {
 
     string s= args[1];
     if (!std::all_of(s.begin(), s.end(), ::isdigit)) {
-        std::cerr << "smash error: timeout: invalid arguments\n";
+        //std::cerr << "smash error: timeout: invalid arguments\n";
+        /// in comment to match tests, was told it will not be checked, asked on piazza for invalid input
+        /// https://piazza.com/class/lfgtde16jfs1xm/post/311
         return;
     }
     int duration = stoi(args[1]); //todo check valid, check not 0, was told it cant be 0
@@ -1121,6 +1123,7 @@ void TimeoutCommand::execute() {
 //    setitimer(ITIMER_REAL, &timer, NULL);
 
     SmallShell::getInstance().executeCommand(cmd.c_str(), true, duration);
+    SmallShell::getInstance().jobsList.getLastJob()->cmd = _trim(original_cmd_line);
 
     //delete timedProcess;
     //todo delete on the other new too
