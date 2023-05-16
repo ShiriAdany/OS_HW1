@@ -120,27 +120,32 @@ void alarmHandler(int sig_num) {
             //timedProcesses.empty() ? 0 : timedProcesses.front()->duration -
             //                                                 difftime(time(nullptr), timedProcesses.front()->startTime);
     bool printed = false;
-    for (auto itr = timedProcesses.begin(); itr != timedProcesses.end();) {
-        int time_remaining = (*itr)->duration - difftime(time(nullptr), (*itr)->startTime);
+    std::cout << "smash: got an alarm" << endl;
+    for (list<TimedProcess*>::iterator itr = timedProcesses.begin(); itr != timedProcesses.end();) {
+        double time_remaining = (double)((*itr)->duration - difftime(time(nullptr), (*itr)->startTime));
         int status;
-
+        //std::cout << (*itr)->cmd_line << "is on with " << (double)time_remaining << "time remaining";;
+        //std::cout << flush;
         if (time_remaining <= 0) {
-            if (!printed) {
-                std::cout << "smash: got an alarm\n";
-                printed = true;
-            }
+//            if (!printed) {
+//                std::cout << "smash: got an alarm\n";
+//                printed = true;
+//            }
             int result = waitpid((*itr)->pid, &status, WNOHANG);
             if (result == 0) {    //is still alive
 
                 if (kill((*itr)->pid, SIGKILL) == -1)
                     perror("smash error: kill failed");
 
-                std::cout << "smash: timeout " << (*itr)->duration << " " << (*itr)->cmd_line << " timed out!\n";
-
-                itr = timedProcesses.erase(itr);
-                itr--;
+                std::cout << "smash: " << (*itr)->cmd_line << " timed out!" << endl;
+            }
+            else
+            {
+                //std::cout << result << " is wait result for " << (*itr)->cmd_line <<endl;
             }
 
+            itr = timedProcesses.erase(itr);
+            itr--;
 //            else if(result > 0){
 //                // child process has terminated
 //                std::cout << "smash: got an alarm\n";
@@ -155,8 +160,10 @@ void alarmHandler(int sig_num) {
     //if (min_time_remaining > 0)
 //        alarm(static_cast<unsigned int>(std::round(min_time_remaining)));
     min_time_remaining = timedProcesses.empty() ? 0 : min_time_remaining;
-    //std::cout << min_time_remaining;
-    if (min_time_remaining > 0)
-        alarm((int)(std::round(min_time_remaining)));
+    //cout << min_time_remaining << "time left! \n";
+    if (min_time_remaining != INT32_MAX && min_time_remaining > 0) {
+        alarm(min_time_remaining);
+    }
 
+    cout << flush;
 }

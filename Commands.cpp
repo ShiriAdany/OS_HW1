@@ -192,12 +192,22 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
     }
 }
 
-void SmallShell::executeCommand(const char *cmd_line, bool isTimed, int duration) {
+void SmallShell::executeCommand(const char *cmd_line, bool isTimed, int duration, string original_cmd_line) {
 
     Command* cmd = CreateCommand(cmd_line);
     cmd->isTimed = isTimed;
     cmd->duration = duration;
+    if (isTimed)
+    {
+        cmd->original_cmd_line = _trim(original_cmd_line); //for foreground processes
+        TimedProcess* timedProcess = new TimedProcess();
+        //timedProcess->cmd_line = SmallShell::getInstance().jobsList.getLastJob()->cmd;
+        timedProcess->cmd_line = original_cmd_line;
+        timedProcess->duration = duration;
+        SmallShell::getInstance().timedProcesses.push_back(timedProcess);
+    }
     cmd->execute();
+    //delete cmd;
     //add support for & !!
     // TODO: Add your implementation here
     // Please note that you must fork smash process for some commands (e.g., external commands....)
@@ -236,6 +246,7 @@ Command::Command(const char *cmd_line, int pid) : cmd_line(cmd_line), original_c
         isBackground = true;
     }
     _parseCommandLine(cmd_line,args);
+
     /*
     string s = cmd_line;
     char str[s.length()];
@@ -382,9 +393,11 @@ void JobsList::removeFinishedJobs() {
         } else if (result == -1) {
             // Error
             // usually means finished
+            //delete (*itr);
             itr = jobsList.erase(itr);
             itr--;
         } else {
+            //delete (*itr);
             itr = jobsList.erase(itr);
             itr--;
             // Child exited
@@ -431,13 +444,7 @@ void JobsList::killAllJobs()
         std::cout << job->pid << ": ";
 
         list<TimedProcess*>* timedProcesses = &(SmallShell::getInstance().timedProcesses);
-        for (list<TimedProcess*>::iterator itr = timedProcesses->begin(); itr != timedProcesses->end(); itr++)
-        {
-            if((*itr)->pid == job->pid)
-            {
-                std::cout << "timeout " << (*itr)->duration << " ";
-            }
-        }
+
 
         std::cout << job->cmd << "\n";
         if (kill(job->pid, SIGKILL) == -1)
@@ -481,7 +488,6 @@ void ExternalCommand::execute() {
     if (p == 0) {
         //child
         setpgrp();
-
         if (isComplex)
         {
             string s = "bash";
@@ -509,15 +515,11 @@ void ExternalCommand::execute() {
         }
         if (isTimed)
         {
-            TimedProcess* timedProcess = new TimedProcess();
-            //timedProcess->cmd_line = SmallShell::getInstance().jobsList.getLastJob()->cmd;
-            timedProcess->cmd_line = original_cmd_line;
-            timedProcess->startTime = SmallShell::getInstance().jobsList.getLastJob()->startTime;
-            timedProcess->duration = duration;
-            timedProcess->pid = SmallShell::getInstance().jobsList.getLastJob()->pid;
-            SmallShell::getInstance().timedProcesses.push_back(timedProcess);
-
-            //std::cout << cmd_line << "\n\n\n";
+            list<TimedProcess*>* timedProcesses = &(SmallShell::getInstance().timedProcesses);
+            list<TimedProcess*>::iterator itr = timedProcesses->end();
+            itr--;
+            (*itr)->startTime = SmallShell::getInstance().jobsList.getLastJob()->startTime;
+            (*itr)->pid = SmallShell::getInstance().jobsList.getLastJob()->pid;
         }
         if (!isBackground)
             waitpid(p, NULL, WUNTRACED); //need to check no &
@@ -1067,7 +1069,7 @@ TimeoutCommand::TimeoutCommand(const char *cmd_line) : BuiltInCommand(cmd_line) 
 
 void TimeoutCommand::execute() {
     int i = 2;
-    if (!args[1] || !args[2])
+    if (!args[1])// || !args[2])
     {
         std::cerr << "smash error: timeout: invalid arguments\n";
         return;
@@ -1086,7 +1088,7 @@ void TimeoutCommand::execute() {
 
     string s= args[1];
     if (!std::all_of(s.begin(), s.end(), ::isdigit)) {
-        //std::cerr << "smash error: timeout: invalid arguments\n";
+        std::cerr << "smash error: timeout: invalid arguments\n";
         /// in comment to match tests, was told it will not be checked, asked on piazza for invalid input
         /// https://piazza.com/class/lfgtde16jfs1xm/post/311
         return;
@@ -1106,24 +1108,7 @@ void TimeoutCommand::execute() {
         }
     }
     alarm(std::round(min_duration)); //TODO
-
-//    struct itimerval timer;
-//
-//    int seconds = (int)min_duration;
-//    int microseconds = (int)((min_duration - seconds) * 1000000);
-//
-//    timer.it_value.tv_sec = seconds;
-//    timer.it_value.tv_usec = microseconds;
-//
-//    // Set interval to 0 to disable repeating
-//    timer.it_interval.tv_sec = 0;
-//    timer.it_interval.tv_usec = 0;
-//
-//    // Start timer
-//    setitimer(ITIMER_REAL, &timer, NULL);
-
-    SmallShell::getInstance().executeCommand(cmd.c_str(), true, duration);
-    SmallShell::getInstance().jobsList.getLastJob()->cmd = _trim(original_cmd_line);
+    SmallShell::getInstance().executeCommand(cmd.c_str(), true, duration, original_cmd_line);
 
     //delete timedProcess;
     //todo delete on the other new too

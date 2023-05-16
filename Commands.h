@@ -236,7 +236,7 @@ public:
         return instance;
     }
     ~SmallShell();
-    void executeCommand(const char* cmd_line, bool isTimed = false, int duration = 0);
+    void executeCommand(const char* cmd_line, bool isTimed = false, int duration = 0, std::string original_cmd_line = "");
     // TODO: add extra methods as needed
 };
 
