@@ -9,7 +9,6 @@
 #define COMMAND_MAX_ARGS (20)
 
 class Command {
-// TODO: Add your data members
 protected:
     char* args[20];
 public:
@@ -23,10 +22,6 @@ public:
     Command(const char* cmd_line, int pid);
     virtual ~Command();
     virtual void execute() = 0;
-
-    //virtual void prepare();
-    //virtual void cleanup();
-    // TODO: Add your extra methods if needed
 };
 
 class BuiltInCommand : public Command {
@@ -51,7 +46,6 @@ public:
 };
 
 class RedirectionCommand : public Command {
-    // TODO: Add your data members
 public:
     explicit RedirectionCommand(const char* cmd_line);
     virtual ~RedirectionCommand() {}
@@ -61,7 +55,6 @@ public:
 };
 
 class ChangeDirCommand : public BuiltInCommand {
-// TODO: Add your data members
 public:
     ChangeDirCommand(const char* cmd_line, char** plastPwd);
     virtual ~ChangeDirCommand() {}
@@ -93,7 +86,6 @@ public:
 
 class JobsList;
 class QuitCommand : public BuiltInCommand {
-// TODO: Add your data members
 public:
     QuitCommand(const char* cmd_line, JobsList* jobs);
     virtual ~QuitCommand() {}
@@ -105,7 +97,6 @@ class JobsList {
 public:
     class JobEntry {
     public:
-        // TODO: Add your data members
         time_t startTime;
         int jobId;
         int pid;
@@ -113,7 +104,6 @@ public:
         std::string cmd;
         JobEntry(int jobId, int pid, JobStatus status, std::string command);
     };
-    // TODO: Add your data members
     std::list<JobEntry*> jobsList;
     int topJobId;
 public:
@@ -127,11 +117,9 @@ public:
     void removeJobById(int jobId);
     JobEntry * getLastJob();
     JobEntry *getLastStoppedJob(int *jobId);
-    // TODO: Add extra methods or modify exisitng ones as needed
 };
 
 class JobsCommand : public BuiltInCommand {
-    // TODO: Add your data members
 public:
     JobsCommand(const char* cmd_line, JobsList* jobs);
     virtual ~JobsCommand() {}
@@ -139,7 +127,6 @@ public:
 };
 
 class ForegroundCommand : public BuiltInCommand {
-    // TODO: Add your data members
 public:
     ForegroundCommand(const char* cmd_line, JobsList* jobs);
     virtual ~ForegroundCommand() {}
@@ -147,7 +134,6 @@ public:
 };
 
 class BackgroundCommand : public BuiltInCommand {
-    // TODO: Add your data members
 public:
     BackgroundCommand(const char* cmd_line, JobsList* jobs);
     virtual ~BackgroundCommand() {}
@@ -156,8 +142,6 @@ public:
 
 
 class GetFileTypeCommand : public BuiltInCommand {
-    /* Optional */
-    // TODO: Add your data members
 public:
     GetFileTypeCommand(const char* cmd_line);
     virtual ~GetFileTypeCommand() {}
@@ -166,8 +150,6 @@ public:
 };
 
 class ChmodCommand : public BuiltInCommand {
-    /* Optional */
-    // TODO: Add your data members
 public:
     ChmodCommand(const char* cmd_line);
     virtual ~ChmodCommand() {}
@@ -175,7 +157,6 @@ public:
 };
 
 class SetcoreCommand : public BuiltInCommand {
-    // TODO: Add your data members
 public:
     SetcoreCommand(const char* cmd_line);
     virtual ~SetcoreCommand() {}
@@ -183,8 +164,6 @@ public:
 };
 
 class KillCommand : public BuiltInCommand {
-    /* Bonus */
-    // TODO: Add your data members
 public:
     KillCommand(const char* cmd_line, JobsList* jobs);
     virtual ~KillCommand() {}
@@ -202,8 +181,6 @@ public:
 };
 
 class TimeoutCommand : public BuiltInCommand {
-/* Optional */
-// TODO: Add your data members
 public:
     explicit TimeoutCommand(const char* cmd_line);
     virtual ~TimeoutCommand() {};
@@ -212,8 +189,6 @@ public:
 
 class SmallShell {
 private:
-//Job foregroundJob;
-    // TODO: Add your data members
     SmallShell();
 public:
     JobsList jobsList;
@@ -237,7 +212,6 @@ public:
     }
     ~SmallShell();
     void executeCommand(const char* cmd_line, bool isTimed = false, int duration = 0, std::string original_cmd_line = "");
-    // TODO: add extra methods as needed
 };
 
 #endif //SMASH_COMMAND_H_

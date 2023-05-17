@@ -26,14 +26,6 @@ int main(int argc, char* argv[]) {
     if (sigaction(SIGALRM, &sa, NULL) == -1)
         perror("smash error: failed to set SIGALRM handler");
 
-//    struct sigaction sigaction1;
-//    sigaction(SIGALRM,ctrlCHandler, &sigaction1);
-//    if(sigaction(SIGALRM , ctrlCHandler,SA_RESTART)==SIG_ERR) {
-//        perror("smash error: failed to set ctrl-C handler");
-//    }
-
-//    TODO: setup sig alarm handler
-
     SmallShell& smash = SmallShell::getInstance();
     while(true) {
         std::cout << smash.prompt << "> ";

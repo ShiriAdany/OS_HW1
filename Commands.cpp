@@ -92,8 +92,6 @@ void _removeBackgroundSign(char* cmd_line) {
     cmd_line[str.find_last_not_of(WHITESPACE, idx) + 1] = 0;
 }
 
-// TODO: Add your implementation for classes in Commands.h 
-
 SmallShell::SmallShell() : previousPath("")  {
     char cwd[PATH_MAX];
     if (getcwd(cwd, sizeof(cwd)) != NULL) {
@@ -101,20 +99,12 @@ SmallShell::SmallShell() : previousPath("")  {
     }else {
         perror("smash error: getcwd failed");
     }
-    pid = getpid(); //todo: add if fails?
-
-
-// TODO: add your implementation
-//printf(prompt);
+    pid = getpid();
 }
 
 SmallShell::~SmallShell() {
-// TODO: add your implementation
 }
 
-/**
-* Creates and returns a pointer to Command class which matches the given command line (cmd_line)
-*/
 Command * SmallShell::CreateCommand(const char* cmd_line) {
     string cmd_s = _trim(string(cmd_line));
     string firstWord = cmd_s.substr(0, cmd_s.find_first_of(" \n"));
@@ -207,15 +197,9 @@ void SmallShell::executeCommand(const char *cmd_line, bool isTimed, int duration
         SmallShell::getInstance().timedProcesses.push_back(timedProcess);
     }
     cmd->execute();
-    //delete cmd;
-    //add support for & !!
-    // TODO: Add your implementation here
-    // Please note that you must fork smash process for some commands (e.g., external commands....)
 }
 
 ChpromptCommand::ChpromptCommand(const char* cmd_line) : BuiltInCommand(cmd_line) {
-// TODO: add your implementation
-    //std::cout << args[1] << "\n";
     if (args[1] == 0)
     {
         newName = "smash";
@@ -224,12 +208,10 @@ ChpromptCommand::ChpromptCommand(const char* cmd_line) : BuiltInCommand(cmd_line
     {
         newName = args[1];
     }
-    //strcat(newName,"> ");
 }
 
 void ChpromptCommand::execute() {
     SmallShell::getInstance().prompt = newName;
-    //SmallShell::prompt = newName;
 }
 
 BuiltInCommand::BuiltInCommand(const char *cmd_line) : Command(cmd_line, getpid()) {
@@ -246,25 +228,6 @@ Command::Command(const char *cmd_line, int pid) : cmd_line(cmd_line), original_c
         isBackground = true;
     }
     _parseCommandLine(cmd_line,args);
-
-    /*
-    string s = cmd_line;
-    char str[s.length()];
-    strcpy(str,s.c_str());
-    char * pch;
-    pch = strtok (str," ");
-    for (int i = 0 ; i < 20; i++)
-    {
-        args[i] = 0;
-    }
-    int i = 0;
-    while (pch != NULL)
-    {
-        args[i] = pch;
-        i++;
-        pch = strtok (NULL, " ");
-    }
-*/
 }
 
 Command::~Command() {
@@ -298,7 +261,7 @@ void GetCurrDirCommand::execute() {
 ChangeDirCommand::ChangeDirCommand(const char *cmd_line, char **plastPwd) : BuiltInCommand(cmd_line) {
 
 }
-//check for cding to folders with spaces!!!
+
 void ChangeDirCommand::execute() {
 
     if (!args[1])
@@ -343,29 +306,18 @@ void ChangeDirCommand::execute() {
         }
 
     }
-
-//    if (chdir(SmallShell::getInstance().currentPath.c_str()) == 0) //Success
-//    {
-//
-//    }
-//    else {
-//        perror("smash error: cd failed");
-//    }
 }
 
 JobsList::JobEntry::JobEntry(int jobId, int pid, JobStatus status, string command) : jobId(jobId), pid(pid), status(status), cmd(command)
 {
     startTime = time(nullptr);
-    //time(&startTime);
 }
 
-//can we init like that?
 JobsList::JobsList() : jobsList(), topJobId(1) {
 
 }
 
 void JobsList::addJob(Command *cmd, bool isBackground) {
-    //this isBackground isn't the one under cmd;
     JobStatus status = FOREGROUND;
     if (isBackground)
         status = BACKGROUND;
@@ -377,11 +329,6 @@ void JobsList::addJob(Command *cmd, bool isBackground) {
 }
 
 void JobsList::removeFinishedJobs() {
-//    list<JobEntry*>::iterator itr = jobsList.end();
-//    itr--;
-//    list<JobEntry*>::iterator end = jobsList.begin();
-//    //end--;
-
     for (list<JobEntry*>::iterator itr = jobsList.begin(); itr != jobsList.end(); itr++) {
         JobEntry* job = (*itr);
         int status;
@@ -393,11 +340,9 @@ void JobsList::removeFinishedJobs() {
         } else if (result == -1) {
             // Error
             // usually means finished
-            //delete (*itr);
             itr = jobsList.erase(itr);
             itr--;
         } else {
-            //delete (*itr);
             itr = jobsList.erase(itr);
             itr--;
             // Child exited
@@ -422,14 +367,6 @@ void JobsList::printJobsList() {
 
         list<TimedProcess*>* timedProcesses = &(SmallShell::getInstance().timedProcesses);
         std::cout << "[" << job->jobId << "] ";
-//        for (list<TimedProcess*>::iterator itr = timedProcesses->begin(); itr != timedProcesses->end(); itr++)
-//        {
-//            if((*itr)->pid == job->pid)
-//            {
-//                std::cout << "timeout " << (*itr)->duration << " ";
-//            }
-//        }
-
         std::cout << job->cmd << " : " << job->pid << " " << elapsed << " secs";
         if (job->status == STOPPED)
             std::cout << " (stopped)";
@@ -442,14 +379,11 @@ void JobsList::killAllJobs()
     for (list<JobEntry*>::iterator itr = jobsList.begin(); itr != jobsList.end(); itr++) {
         JobEntry* job = (*itr);
         std::cout << job->pid << ": ";
-
         list<TimedProcess*>* timedProcesses = &(SmallShell::getInstance().timedProcesses);
-
 
         std::cout << job->cmd << "\n";
         if (kill(job->pid, SIGKILL) == -1)
             perror("smash error: kill failed");
-
     }
 }
 
@@ -503,7 +437,7 @@ void ExternalCommand::execute() {
 
     } else {
 
-        this->pid = p; //important?
+        this->pid = p;
 
         if (isBackground)
         {
@@ -522,7 +456,7 @@ void ExternalCommand::execute() {
             (*itr)->pid = SmallShell::getInstance().jobsList.getLastJob()->pid;
         }
         if (!isBackground)
-            waitpid(p, NULL, WUNTRACED); //need to check no &
+            waitpid(p, NULL, WUNTRACED);
     }
 }
 
@@ -609,8 +543,6 @@ BackgroundCommand::BackgroundCommand(const char *cmd_line, JobsList *jobs) : Bui
 
 }
 
-///TODO check if working with ctrl-z/c whatever
-
 void BackgroundCommand::execute() {
 
     if (args[2]) {
@@ -637,7 +569,7 @@ void BackgroundCommand::execute() {
                     }
                     done = true;
                     (*itr)->status = BACKGROUND; //was STOPPED
-                    //(*itr)->startTime = time(nullptr); //TODO make sure it is supposed to be started over
+                    //(*itr)->startTime = time(nullptr); //timer should not be reset
                     std::cout << (*itr)->cmd << " : " << (*itr)->pid<< "\n";
                     if (kill((*itr)->pid,SIGCONT) == -1)
                         perror("smash error: kill failed");
@@ -666,7 +598,7 @@ void BackgroundCommand::execute() {
 
         if (max == -1)
         {
-            std::cerr << "smash error: bg: there is no stopped jobs to resume\n"; //there ARE no jobs to resume
+            std::cerr << "smash error: bg: there is no stopped jobs to resume\n";
             return;
         }
 
@@ -805,45 +737,9 @@ RedirectionCommand::RedirectionCommand(const char *cmd_line) : Command(cmd_line,
 }
 
 void RedirectionCommand::execute() {
-    //pwd > .txt
-    //note that 0 is a pid ???
     std::string s = cmd_line;
     std::string start = _trim(s.substr(0,s.find('>')));
     std::string end;
-
-//    int pid = fork();
-//    if (pid == 0)
-//    {
-//        close(1);
-//        if (s[s.find('>')] == s[s.find('>') + 1]) //>>
-//        {
-//            int from = s.find('>') + 2;
-//            int length = s.length() - from;
-//            end = _trim(s.substr(from,length));
-//            if (open(end.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0777) == -1)
-//            {
-//                perror("smash error: open failed");
-//                exit(1);
-//            }
-//        }
-//        else //>
-//        {
-//            int from = s.find('>') + 1;
-//            int length = s.length() - from;
-//            end = _trim(s.substr(from,length));
-//            if (open(end.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0777) == -1)
-//            {
-//                perror("smash error: open failed");
-//                exit(1);
-//            }
-//        }
-//        //SmallShell::getInstance().isChildOf
-//        SmallShell::getInstance().executeCommand(start.c_str());
-//        //close(1); //why it works better without ?????
-//        exit(0);
-//    }
-//    waitpid(pid, nullptr,0);
-//    return ;
 
     int stdout_fd = dup(1);
     int fd;
@@ -900,12 +796,6 @@ void PipeCommand::execute() {
     {
         perror("smash error: pipe failed");
     }
-    //SmallShell& smash = SmallShell::getInstance();
-    //bool isFirstExternal = smash.CreateCommand(start.c_str())->isExternal;
-    //bool isSecondExternal = smash.CreateCommand(end.c_str())->isExternal;
-
-    // in | - should we close stderr? no right?
-    // in |& - should we close stdout? no?
     if (s[s.find('|') + 1] == '&') // |&
     {
         int from = s.find('|') + 2;
@@ -989,16 +879,15 @@ void GetFileTypeCommand::execute() {
     struct stat statbuff;
     if (args[2])
     {
-        std::cerr << "smash error: getfiletype: invalid arguments\n"; /// important: changed it like instructions on piazza (look up gettype_
+        std::cerr << "smash error: getfiletype: invalid arguments\n";
         return;
     }
-    if (lstat(args[1], &statbuff) != 0) ///syscall ? what is it? what if no such file? << need to print with perror i think
+    if (lstat(args[1], &statbuff) != 0)
     {
         perror("smash error: lstat failed");
         return;
     }
-    std::cout << args[1] << "’s type is \""; ///important: changed " from old " as we copied from pdf
-    //todo check about ' type!!! asked on piazza
+    std::cout << args[1] << "'s type is \"";
     switch (statbuff.st_mode & S_IFMT) {
         case S_IFBLK:  std::cout <<"block device" ;           break;
         case S_IFCHR:  std::cout <<"character device" ;       break;
@@ -1013,18 +902,16 @@ void GetFileTypeCommand::execute() {
 
 int GetFileTypeCommand::getSize(std::string file) {
     struct stat statbuff;
-    //std::cout <<  "\n" << file << "  " << file.find('/')<< "\n";
     lstat(file.c_str(), &statbuff);
     if (!S_ISDIR(statbuff.st_mode))
         return statbuff.st_size;
-    int size = statbuff.st_size; //should we init this to 512 ? nah no way right?
+    int size = statbuff.st_size;
     DIR *dr;
     struct dirent *en;
     dr = opendir(file.c_str()); //open all directory
     if (dr) {
         while ((en = readdir(dr)) != NULL) {
             if (strcmp(en->d_name, ".") == 0   || strcmp(en->d_name,"..") == 0) continue;
-            //    std::cout << file + "/" + en->d_name << " frigging d name is " << en->d_name << "\n";
             size += getSize(file + "/" + en->d_name);
         }
         closedir(dr); //close all directory
@@ -1048,7 +935,7 @@ void ChmodCommand::execute() {
         if (stoi(new_mode_s) >= 10000)
         {
             std::cerr << "smash error: chmod: invalid arguments\n";
-            return; //todo remove this as it's only for new tests?
+            return;
         }
         mode_t new_mode = stoi(new_mode_s,0,8);
         if(chmod(path.c_str(), new_mode) == -1)
@@ -1069,7 +956,7 @@ TimeoutCommand::TimeoutCommand(const char *cmd_line) : BuiltInCommand(cmd_line) 
 
 void TimeoutCommand::execute() {
     int i = 2;
-    if (!args[1])// || !args[2])
+    if (!args[1] || !args[2])
     {
         std::cerr << "smash error: timeout: invalid arguments\n";
         return;
@@ -1093,12 +980,9 @@ void TimeoutCommand::execute() {
         /// https://piazza.com/class/lfgtde16jfs1xm/post/311
         return;
     }
-    int duration = stoi(args[1]); //todo check valid, check not 0, was told it cant be 0
-
-    //alarm(duration);
+    int duration = stoi(args[1]);
 
     double min_duration = duration;
-
     list<TimedProcess*>* timedProcesses = &(SmallShell::getInstance().timedProcesses);
     for (list<TimedProcess*>::iterator itr = timedProcesses->begin(); itr != timedProcesses->end(); itr++) {
         double time_to_run =  abs((*itr)->duration - difftime(time(nullptr), (*itr)->startTime));
@@ -1107,9 +991,6 @@ void TimeoutCommand::execute() {
             min_duration = time_to_run;
         }
     }
-    alarm(std::round(min_duration)); //TODO
+    alarm(std::round(min_duration));
     SmallShell::getInstance().executeCommand(cmd.c_str(), true, duration, original_cmd_line);
-
-    //delete timedProcess;
-    //todo delete on the other new too
 }
